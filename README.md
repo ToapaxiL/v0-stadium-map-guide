@@ -17,9 +17,3 @@ Your project is live at:
 **[https://vercel.com/alextoapaxi-5282s-projects/v0-stadium-map-guide](https://vercel.com/alextoapaxi-5282s-projects/v0-stadium-map-guide)**
 
 
-## How It Works
-
-1. Create and modify your project using [v0.app](https://v0.app)
-2. Deploy your chats from the v0 interface
-3. Changes are automatically pushed to this repository
-4. Vercel deploys the latest version from this repository
