@@ -16,11 +16,6 @@ Your project is live at:
 
 **[https://vercel.com/alextoapaxi-5282s-projects/v0-stadium-map-guide](https://vercel.com/alextoapaxi-5282s-projects/v0-stadium-map-guide)**
 
-## Build your app
-
-Continue building your app on:
-
-**[https://v0.app/chat/rFt7nFUFOSF](https://v0.app/chat/rFt7nFUFOSF)**
 
 ## How It Works
 
