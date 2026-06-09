@@ -1,0 +1,318 @@
+"use client"
+
+import { useMemo, useEffect, useRef } from "react"
+import type { RouteResult } from "@/lib/navigation"
+
+const VW = 2268.107
+const VH = 1659.623
+
+// ─── Coordenadas EXACTAS de los círculos blancos del SVG Vector-ZoIRu.svg ───
+// Incluye nodo PLAZOLETA como intermediario entre P11 y P2. Orden horario.
+// índice 9 = Plazoleta (nodo virtual entre P11 y P2 en el perímetro)
+const PERIMETER: { gate: number; sub?: string; label?: string; x: number; y: number }[] = [
+  { gate: 9,  sub: "ori",  x: 447.991,  y: 670.308  }, // 0  P9 Oriental  (izq-arriba)
+  { gate: 8,               x: 713.423,  y: 466.789  }, // 1  P8
+  { gate: 7,               x: 952.45,   y: 388.887  }, // 2  P7
+  { gate: 6,               x: 1384.029, y: 388.887  }, // 3  P6
+  { gate: 5,               x: 1622.089, y: 466.789  }, // 4  P5
+  { gate: 4,  sub: "alta", x: 1888.917, y: 671.128  }, // 5  P4 Alta      (der-arriba)
+  { gate: 4,  sub: "baja", x: 1888.917, y: 913.99   }, // 6  P4 Baja      (der-abajo)
+  { gate: 3,               x: 1622.089, y: 1120.456 }, // 7  P3
+  { gate: 2,               x: 1383.1,   y: 1197.347 }, // 8  P2
+  { gate: 1,  label: "Plazoleta", x: 1166.994, y: 1197.312 }, // 9  PLAZOLETA - Puerta 1 (intermedio P2↔P11)
+  { gate: 11,              x: 951.52,   y: 1197.347 }, // 10 P11
+  { gate: 10,              x: 713.423,  y: 1126.789 }, // 11 P10
+  { gate: 9,  sub: "occ",  x: 447.991,  y: 913.169  }, // 12 P9 Occidental (izq-abajo)
+]
+
+const N = PERIMETER.length // 13
+
+// Sección → índice en el perímetro
+function sectionToIndex(section: string): number {
+  const map: Record<string, number> = {
+    "general-norte-oriental":   0,  // P9 Ori
+    "tribuna-norte-oriental":   1,  // P8
+    "palco-norte-oriental":     2,  // P7
+    "palco-sur-oriental":       3,  // P6
+    "tribuna-sur-oriental":     4,  // P5
+    "general-sur-alta":         5,  // P4 Alta
+    "general-sur-baja":         6,  // P4 Baja
+    "tribuna-sur-occidental":   7,  // P3
+    "palco-sur-occidental":     8,  // P2
+    "plazoleta":                9,  // Plazoleta (nodo intermedio entre P2 y P11)
+    "palco-norte-occidental":   10, // P11
+    "tribuna-norte-occidental": 11, // P10
+    "general-norte-occidental": 12, // P9 Occ
+  }
+  return map[section] ?? 0
+}
+
+// Todos los índices de PERIMETER que corresponden a una puerta dada
+function indicesForGate(gate: number): number[] {
+  const res: number[] = []
+  PERIMETER.forEach((p, i) => { if (p.gate === gate) res.push(i) })
+  return res
+}
+
+// Convierte la secuencia de puertas (gateTrace de navigation.ts) en una
+// secuencia de índices del perímetro. Resuelve puertas ambiguas (P4, P9)
+// eligiendo la opción más cercana al punto previo. Fija los extremos a iA/iB.
+function traceToIndices(trace: number[], iA: number, iB: number): number[] {
+  if (trace.length === 0) return [iA, iB]
+  const indices: number[] = []
+  for (let k = 0; k < trace.length; k++) {
+    const gate = trace[k]
+    const candidates = indicesForGate(gate)
+    if (candidates.length === 0) continue
+
+    let chosen: number
+    if (k === 0) {
+      // primer nodo: usar el índice del origen si coincide la puerta
+      chosen = candidates.includes(iA) ? iA : candidates[0]
+    } else if (k === trace.length - 1) {
+      // último nodo: usar el índice del destino si coincide la puerta
+      chosen = candidates.includes(iB) ? iB : candidates[0]
+    } else if (candidates.length === 1) {
+      chosen = candidates[0]
+    } else {
+      // ambigua: elegir la más cercana al punto previo
+      const prev = PERIMETER[indices[indices.length - 1]]
+      chosen = candidates.reduce((best, c) => {
+        const d  = Math.hypot(PERIMETER[c].x - prev.x, PERIMETER[c].y - prev.y)
+        const db = Math.hypot(PERIMETER[best].x - prev.x, PERIMETER[best].y - prev.y)
+        return d < db ? c : best
+      }, candidates[0])
+    }
+    if (indices.length === 0 || indices[indices.length - 1] !== chosen) {
+      indices.push(chosen)
+    }
+  }
+  return indices
+}
+
+// Asegura que la línea siga SIEMPRE los 13 puntos del contorno: entre dos
+// índices consecutivos no adyacentes, rellena los puntos intermedios del anillo
+// siguiendo el arco más corto. Así la ruta nunca corta a través del estadio.
+function expandAlongPerimeter(indices: number[]): number[] {
+  if (indices.length < 2) return indices
+  const out: number[] = [indices[0]]
+  for (let k = 1; k < indices.length; k++) {
+    const a = indices[k - 1]
+    const b = indices[k]
+    if (a === b) continue
+    const cw  = (b - a + N) % N   // pasos en sentido horario
+    const ccw = (a - b + N) % N   // pasos en sentido antihorario
+    if (cw <= ccw) {
+      for (let i = 1; i <= cw;  i++) out.push((a + i) % N)
+    } else {
+      for (let i = 1; i <= ccw; i++) out.push((a - i + N) % N)
+    }
+  }
+  return out
+}
+
+function toD(pts: { x: number; y: number }[]): string {
+  if (pts.length < 2) return ""
+  return pts.map((p, i) => `${i === 0 ? "M" : "L"}${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(" ")
+}
+
+function pathLength(pts: { x: number; y: number }[]): number {
+  let len = 0
+  for (let i = 1; i < pts.length; i++) {
+    const dx = pts[i].x - pts[i - 1].x
+    const dy = pts[i].y - pts[i - 1].y
+    len += Math.sqrt(dx * dx + dy * dy)
+  }
+  return len
+}
+
+interface Props { result: RouteResult }
+
+export function StadiumRouteMap({ result }: Props) {
+  const pathRef  = useRef<SVGPathElement>(null)
+  const glowRef  = useRef<SVGPathElement>(null)
+
+  const data = useMemo(() => {
+    const iA = sectionToIndex(result.from)
+    const iB = sectionToIndex(result.to)
+    const posA = PERIMETER[iA]
+    const posB = PERIMETER[iB]
+
+    // La línea del SVG se deriva del MISMO gateTrace que las indicaciones de texto,
+    // garantizando que mapa y pasos siempre coincidan. Luego se expande para
+    // seguir SIEMPRE los 13 puntos del contorno y nunca cortar por el estadio.
+    const traceIndices = traceToIndices(result.gateTrace ?? [], iA, iB)
+    const routeIndices = expandAlongPerimeter(traceIndices)
+    const pts = routeIndices.map(i => PERIMETER[i])
+
+    const pathD = toD(pts)
+    const len   = pathLength(pts)
+
+    const activeIndices = new Set(routeIndices)
+
+    return { iA, iB, posA, posB, pathD, len, activeIndices }
+  }, [result])
+
+  // Animación draw-on
+  useEffect(() => {
+    const els = [pathRef.current, glowRef.current].filter(Boolean) as SVGPathElement[]
+    for (const el of els) {
+      const len = data.len
+      el.style.strokeDasharray  = `${len}`
+      el.style.strokeDashoffset = `${len}`
+      el.style.transition = "none"
+    }
+    const raf1 = requestAnimationFrame(() => {
+      const raf2 = requestAnimationFrame(() => {
+        for (const el of els) {
+          el.style.transition    = "stroke-dashoffset 1.8s cubic-bezier(0.4,0,0.2,1)"
+          el.style.strokeDashoffset = "0"
+        }
+      })
+      return () => cancelAnimationFrame(raf2)
+    })
+    return () => cancelAnimationFrame(raf1)
+  }, [data])
+
+  const { posA, posB, pathD, len, activeIndices } = data
+
+  return (
+    <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
+      <div className="px-5 py-3 border-b border-border flex items-center justify-between">
+        <p className="text-sm font-bold text-foreground uppercase tracking-wide">Mapa de ruta</p>
+        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+          <span className="flex items-center gap-1.5">
+            <span className="w-3 h-3 rounded-full bg-emerald-500 inline-block" />
+            Origen
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-3 h-3 rounded-full bg-red-500 inline-block" />
+            Destino
+          </span>
+        </div>
+      </div>
+
+      <div className="relative w-full">
+        <img
+          src="/images/mapa-rutas.svg"
+          alt="Mapa del estadio"
+          className="w-full h-auto block"
+          draggable={false}
+        />
+
+        <svg
+          viewBox={`0 0 ${VW} ${VH}`}
+          className="absolute inset-0 w-full h-full pointer-events-none"
+          preserveAspectRatio="xMidYMid meet"
+        >
+          <defs>
+            <filter id="glow">
+              <feGaussianBlur stdDeviation="12" result="blur" />
+              <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          </defs>
+
+          {/* Solo los puntos intermedios de la ruta (no A ni B) */}
+          {PERIMETER.map((p, i) => {
+            const isA = i === data.iA
+            const isB = i === data.iB
+            const isActive = activeIndices.has(i)
+            if (!isActive || isA || isB) return null
+            return (
+              <circle
+                key={i}
+                cx={p.x} cy={p.y} r={14}
+                fill="white"
+                opacity={0.7}
+              />
+            )
+          })}
+
+          {/* Casing blanco para contraste */}
+          {pathD && (
+            <path
+              d={pathD}
+              fill="none"
+              stroke="white"
+              strokeWidth={22}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              opacity={0.9}
+            />
+          )}
+
+          {/* Línea de ruta con glow animada */}
+          {pathD && (
+            <path
+              ref={glowRef}
+              d={pathD}
+              fill="none"
+              stroke="#f97316"
+              strokeWidth={14}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeDasharray={`${len}`}
+              strokeDashoffset={`${len}`}
+              filter="url(#glow)"
+              opacity={0.6}
+            />
+          )}
+          {pathD && (
+            <path
+              ref={pathRef}
+              d={pathD}
+              fill="none"
+              stroke="#f97316"
+              strokeWidth={8}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeDasharray={`${len}`}
+              strokeDashoffset={`${len}`}
+            />
+          )}
+
+          {/* Pulso en punto A */}
+          <circle cx={posA.x} cy={posA.y} r={40} fill="#22c55e" opacity={0.15}>
+            <animate attributeName="r" values="28;48;28" dur="2s" repeatCount="indefinite" />
+            <animate attributeName="opacity" values="0.2;0.05;0.2" dur="2s" repeatCount="indefinite" />
+          </circle>
+          {/* Marcador A */}
+          <circle cx={posA.x} cy={posA.y} r={24} fill="#22c55e" stroke="white" strokeWidth={4} />
+          <text
+            x={posA.x} y={posA.y}
+            textAnchor="middle" dominantBaseline="central"
+            fill="white" fontSize={20} fontWeight="900" fontFamily="system-ui,sans-serif"
+          >A</text>
+          <rect x={posA.x - 30} y={posA.y - 74} width={60} height={28} rx={8} fill="#22c55e" />
+          <text
+            x={posA.x} y={posA.y - 60}
+            textAnchor="middle" dominantBaseline="central"
+            fill="white" fontSize={16} fontWeight="700" fontFamily="system-ui,sans-serif"
+          >P{posA.gate}</text>
+
+          {/* Pulso en punto B */}
+          <circle cx={posB.x} cy={posB.y} r={40} fill="#ef4444" opacity={0.15}>
+            <animate attributeName="r" values="28;48;28" dur="2s" repeatCount="indefinite" begin="0.5s" />
+            <animate attributeName="opacity" values="0.2;0.05;0.2" dur="2s" repeatCount="indefinite" begin="0.5s" />
+          </circle>
+          {/* Marcador B */}
+          <circle cx={posB.x} cy={posB.y} r={24} fill="#ef4444" stroke="white" strokeWidth={4} />
+          <text
+            x={posB.x} y={posB.y}
+            textAnchor="middle" dominantBaseline="central"
+            fill="white" fontSize={20} fontWeight="900" fontFamily="system-ui,sans-serif"
+          >B</text>
+          <rect x={posB.x - 30} y={posB.y - 74} width={60} height={28} rx={8} fill="#ef4444" />
+          <text
+            x={posB.x} y={posB.y - 60}
+            textAnchor="middle" dominantBaseline="central"
+            fill="white" fontSize={16} fontWeight="700" fontFamily="system-ui,sans-serif"
+          >P{posB.gate}</text>
+        </svg>
+      </div>
+    </div>
+  )
+}
