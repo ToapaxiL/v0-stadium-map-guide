@@ -87,6 +87,13 @@ function traceToIndices(trace: number[], iA: number, iB: number): number[] {
       indices.push(chosen)
     }
   }
+  // Si la traza colapsa a un solo punto (p. ej. misma puerta: P4 alta↔baja,
+  // P9 oriental↔occidental) pero el origen y destino son puntos físicos
+  // distintos, traza un segmento directo entre ambos extremos.
+  if (indices.length < 2) {
+    if (iA !== iB) return [iA, iB]
+    return indices.length === 1 ? indices : [iA]
+  }
   return indices
 }
 
