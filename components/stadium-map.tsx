@@ -46,7 +46,7 @@ export function StadiumMap() {
   }, [isDarkMode])
   const [selectedService, setSelectedService] = useState<Service | null>(null)
   const [activeTab, setActiveTab] = useState("navigate")
-  const filteredSections = stadiumSections.filter((section) => {
+  const filteredSections = stadiumSections.filter((section: StadiumSection) => {
     const matchesFilter = filter === "all" || section.type === filter
     const matchesSearch =
       section.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -389,11 +389,11 @@ export function StadiumMap() {
                         <SectionDetail section={selectedSection} onClose={() => setSelectedSection(null)} />
                       ) : (
                         <div className="space-y-3">
-                          {filteredSections.map((section) => (
+                          {filteredSections.map((section: StadiumSection) => (
                             <SectionCard
                               key={section.id}
                               section={section}
-                              isSelected={selectedSection?.id === section.id}
+                              isSelected={false}
                               onClick={() => setSelectedSection(section)}
                             />
                           ))}
@@ -458,11 +458,11 @@ export function StadiumMap() {
                       <SectionDetail section={selectedSection} onClose={() => setSelectedSection(null)} />
                     ) : (
                       <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1">
-                        {filteredSections.map((section) => (
+                        {filteredSections.map((section: StadiumSection) => (
                           <SectionCard
                             key={section.id}
                             section={section}
-                            isSelected={selectedSection?.id === section.id}
+                            isSelected={false}
                             onClick={() => setSelectedSection(section)}
                           />
                         ))}
