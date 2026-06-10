@@ -435,5 +435,5 @@ function resolveRoute(from: number, to: number, lang: "es" | "en" = "es"): Resol
   // Fallback
   const fallback = lang === "es" ? "Perímetro exterior del estadio" : "Stadium exterior perimeter"
   steps.push(...ext(from, [fallback], to))
-  return { steps }
+  return { steps, trace }
 }
