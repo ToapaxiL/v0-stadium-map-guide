@@ -346,34 +346,33 @@ function resolveRoute(from: number, to: number, lang: "es" | "en" = "es"): Resol
   }
 
   // ── TRAMO_2 ↔ TRAMO_3: P9 ↔ P10 por Hermensz ───────────
-  if (inTramo2(from) && inTramo3(to)) {
+  // P2 se excluye (to/from !== 2) porque, aunque pertenece a TRAMO_3, su
+  // salida natural hacia el oriente es por el sur (P3 → Cacica Quilago),
+  // no por el norte/Plazoleta. Cae al bloque TRAMO_1 ↔ TRAMO_2.
+  if (inTramo2(from) && inTramo3(to) && to !== 2) {
     wi(from, 9, TRAMO_2)
     steps.push(...ext(9, ["H. Vans Risn"], 10))
     wi(10, to, TRAMO_3)
     return { steps, trace }
   }
-  if (inTramo3(from) && inTramo2(to)) {
+  if (inTramo3(from) && inTramo2(to) && from !== 2) {
     wi(from, 10, TRAMO_3)
     steps.push(...ext(10, ["H. Vans Risn"], 9))
     wi(9, to, TRAMO_2)
     return { steps, trace }
   }
 
-  // ── TRAMO_1 ↔ TRAMO_2: ruta más corta según posición ────
-  // P3(sur-occ) → TRAMO_2: la ruta más corta va por el lado sur (Cacica Quilago) hacia P5
-  // P3 → P5/P6: exterior por Cacica Quilago
-  // P3 → P7/P8/P9: más corto es pasar por P2→TRAMO_3→P10→Hermensz→P9→TRAMO_2
+  // ── TRAMO_1 ↔ TRAMO_2: salida sur por P3 → Cacica Quilago ────
+  // Tanto P5/P6 como P7/P8/P9 se alcanzan saliendo por P3 al exterior
+  // (Cacica Quilago) y entrando por el lado oriental. Nunca por la Plazoleta.
   if (inTramo1(from) && inTramo2(to)) {
+    wi(from, 3, TRAMO_1)
     if (to <= 6) {
-      // P5 o P6: salir por P3, Cacica Quilago
-      wi(from, 3, TRAMO_1)
       steps.push(...ext(3, ["Calle Cacica Quilago"], to))
     } else {
-      // P7, P8, P9: más corto por el lado occidental
-      wi(from, 2, TRAMO_1)
-      wi(2, 10, TRAMO_3)
-      steps.push(...ext(10, ["H. Vans Risn"], 9))
-      wi(9, to, TRAMO_2)
+      // P7/P8/P9: exterior por Cacica Quilago, entra por P5 y camina interno
+      steps.push(...ext(3, ["Calle Cacica Quilago"], 5))
+      wi(5, to, TRAMO_2)
     }
     return { steps, trace }
   }
@@ -382,14 +381,12 @@ function resolveRoute(from: number, to: number, lang: "es" | "en" = "es"): Resol
       // Desde P5/P6: Cacica Quilago → P3
       wi(from, 5, TRAMO_2)
       steps.push(...ext(5, ["Calle Cacica Quilago"], 3))
-      wi(3, to, TRAMO_1)
     } else {
-      // Desde P7/P8/P9: más corto por lado occidental → P10→TRAMO_3→P2
-      wi(from, 9, TRAMO_2)
-      steps.push(...ext(9, ["H. Vans Risn"], 10))
-      wi(10, 2, TRAMO_3)
-      wi(2, to, TRAMO_1)
+      // Desde P7/P8/P9: camina interno hasta P5, sale a Cacica Quilago → P3
+      wi(from, 5, TRAMO_2)
+      steps.push(...ext(5, ["Calle Cacica Quilago"], 3))
     }
+    wi(3, to, TRAMO_1)
     return { steps, trace }
   }
 
