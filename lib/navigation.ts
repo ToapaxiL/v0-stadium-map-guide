@@ -345,6 +345,23 @@ function resolveRoute(from: number, to: number, lang: "es" | "en" = "es"): Resol
     return { steps, trace }
   }
 
+  // ── P2 (Palco Sur Occidental) ↔ TRAMO_2 NORTE (P7/P8/P9): vía Plazoleta ──
+  // Desde P2 hacia el norte oriental, la ruta natural es por la Plazoleta →
+  // P11 → P10 → exterior (Hermensz) → P9. (Las secciones del sur oriental,
+  // P5/P6, siguen saliendo por P3 en el bloque TRAMO_1 ↔ TRAMO_2 de abajo.)
+  if (from === 2 && inTramo2(to) && to > 6) {
+    wi(2, 10, TRAMO_3)
+    steps.push(...ext(10, ["H. Vans Risn"], 9))
+    wi(9, to, TRAMO_2)
+    return { steps, trace }
+  }
+  if (inTramo2(from) && from > 6 && to === 2) {
+    wi(from, 9, TRAMO_2)
+    steps.push(...ext(9, ["H. Vans Risn"], 10))
+    wi(10, 2, TRAMO_3)
+    return { steps, trace }
+  }
+
   // ── TRAMO_2 ↔ TRAMO_3: P9 ↔ P10 por Hermensz ───────────
   // P2 se excluye (to/from !== 2) porque, aunque pertenece a TRAMO_3, su
   // salida natural hacia el oriente es por el sur (P3 → Cacica Quilago),
