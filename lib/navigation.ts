@@ -90,10 +90,10 @@ const T = {
     walkCorridor:   "Camina por el pasillo interior",
     passesByGate:   (gates: string) => `Pasas por Puerta ${gates}`,
     fromTo:         (a: number, b: number) => `De Puerta ${a} a Puerta ${b}`,
-    exitGate:       (g: number) => `Sal por Puerta ${g} al exterior`,
+    exitGate:       (g: number | string) => `Sal por Puerta ${g} al exterior`,
     walkStreet:     (s: string) => `Camina por ${s}`,
     continueStreet: (s: string) => `Continúa por ${s}`,
-    enterGate:      (g: number) => `Entra por Puerta ${g}`,
+    enterGate:      (g: number | string) => `Entra por Puerta ${g}`,
     walkToCorridor: "Camina por el pasillo interior hasta tu sección",
     viaPlazoleta:   "Pasa por la Plazoleta",
   },
@@ -101,10 +101,10 @@ const T = {
     walkCorridor:   "Walk through the indoor corridor",
     passesByGate:   (gates: string) => `Passes through Gate ${gates}`,
     fromTo:         (a: number, b: number) => `From Gate ${a} to Gate ${b}`,
-    exitGate:       (g: number) => `Exit through Gate ${g} to the exterior`,
+    exitGate:       (g: number | string) => `Exit through Gate ${g} to the exterior`,
     walkStreet:     (s: string) => `Walk along ${s}`,
     continueStreet: (s: string) => `Continue along ${s}`,
-    enterGate:      (g: number) => `Enter through Gate ${g}`,
+    enterGate:      (g: number | string) => `Enter through Gate ${g}`,
     walkToCorridor: "Walk through the indoor corridor to your section",
     viaPlazoleta:   "Pass through the Plaza",
   },
@@ -128,6 +128,43 @@ function walkInternal(
   const ti = tramo.indexOf(to)
   if (fi === -1 || ti === -1) return
   const t = T[lang]
+  const gw = lang === "es" ? "Puerta" : "Gate"
+
+  // ── Corte físico P8 ✖ P9 en TRAMO_2 (lado oriental ↔ General Norte) ──
+  // No existe pasillo interior entre P8 y P9: hay que salir por la Puerta 7-8
+  // al exterior, caminar por H. Vans Risn y entrar por la Puerta 9 (o viceversa).
+  if (tramo === TRAMO_2 && (from === 9 || to === 9)) {
+    const oriental = from === 9 ? to : from   // extremo en {5,6,7,8}
+    const emitOriental = (a: number, b: number) => {
+      if (a === b) return
+      const ai = TRAMO_2.indexOf(a)
+      const bi = TRAMO_2.indexOf(b)
+      const d = ai < bi ? 1 : -1
+      const m: number[] = []
+      for (let i = ai + d; i !== bi; i += d) m.push(TRAMO_2[i])
+      steps.push({
+        type: "internal",
+        instruction: t.walkCorridor,
+        detail: m.length > 0 ? t.passesByGate(m.map(String).join(`, ${gw} `)) : t.fromTo(a, b),
+        icon: "walk",
+      })
+    }
+    if (to === 9) {
+      // oriental → P9: camina interno hasta P8, sale por 7-8, Hermenz, entra P9
+      emitOriental(oriental, 8)
+      steps.push({ type: "external", instruction: t.exitGate("7-8"), icon: "exit" })
+      steps.push({ type: "external", instruction: t.walkStreet("H. Vans Risn"), icon: "walk" })
+      steps.push({ type: "external", instruction: t.enterGate(9), icon: "enter" })
+    } else {
+      // P9 → oriental: sale por P9, Hermenz, entra por 7-8, camina interno hasta destino
+      steps.push({ type: "external", instruction: t.exitGate(9), icon: "exit" })
+      steps.push({ type: "external", instruction: t.walkStreet("H. Vans Risn"), icon: "walk" })
+      steps.push({ type: "external", instruction: t.enterGate("7-8"), icon: "enter" })
+      emitOriental(8, oriental)
+    }
+    return
+  }
+
   const dir = fi < ti ? 1 : -1
   const mid: number[] = []
   for (let i = fi + dir; i !== ti; i += dir) mid.push(tramo[i])
@@ -219,7 +256,7 @@ export function calculateRoute(fromId: string, toId: string, lang: "es" | "en" =
 
 interface ResolvedRoute { steps: RouteStep[]; trace: number[] }
 
-function externalStep(exit: number, streets: string[], entry: number, lang: "es" | "en"): RouteStep[] {
+function externalStep(exit: number | string, streets: string[], entry: number | string, lang: "es" | "en"): RouteStep[] {
   const t = T[lang]
   return [
     { type: "external", instruction: t.exitGate(exit), icon: "exit" },
@@ -250,10 +287,35 @@ function resolveRoute(from: number, to: number, lang: "es" | "en" = "es"): Resol
     walkInternal(steps, f, t2, tramo, lang)
     traceTramo(f, t2, tramo)
   }
-  const ext = (exit: number, streets: string[], entry: number) => {
+  const ext = (
+    exit: number,
+    streets: string[],
+    entry: number,
+    opts?: { exitLabel?: number | string; entryLabel?: number | string },
+  ) => {
     pushTrace(exit)
     pushTrace(entry)
-    return externalStep(exit, streets, entry, lang)
+    return externalStep(opts?.exitLabel ?? exit, streets, opts?.entryLabel ?? entry, lang)
+  }
+
+  // ── Conexión oeste (P10/Hermenz) ↔ TRAMO_2 ──────────────────────────────
+  // General Norte (P9) se entra/sale por la Puerta 9; las secciones orientales
+  // (P5-P8) se alcanzan por la Puerta 7-8 caminando por H. Vans Risn.
+  const westToTramo2 = (target: number) => {
+    if (target === 9) {
+      steps.push(...ext(10, ["H. Vans Risn"], 9))
+    } else {
+      steps.push(...ext(10, ["H. Vans Risn"], 8, { entryLabel: "7-8" }))
+      wi(8, target, TRAMO_2)
+    }
+  }
+  const tramo2ToWest = (source: number) => {
+    if (source === 9) {
+      steps.push(...ext(9, ["H. Vans Risn"], 10))
+    } else {
+      wi(source, 8, TRAMO_2)
+      steps.push(...ext(8, ["H. Vans Risn"], 10, { exitLabel: "7-8" }))
+    }
   }
 
   // ── Mismo tramo directo ──────────────────────────────────
@@ -296,11 +358,9 @@ function resolveRoute(from: number, to: number, lang: "es" | "en" = "es"): Resol
       wi(2, 3, TRAMO_1)
       steps.push(...ext(3, ["Calle Cacica Quilago"], to))
     } else {
-      // Plazoleta → P11 → P10 → exterior H. Vans Risn → P9 → TRAMO_2
-      // No pasar por P2, ir directamente hacia P11 (dirección opuesta en TRAMO_3)
+      // Plazoleta → P11 → P10 → exterior H. Vans Risn → destino (P9 o Puerta 7-8)
       wi(PLAZOLETA_GATE, 10, TRAMO_3)
-      steps.push(...ext(10, ["H. Vans Risn"], 9))
-      wi(9, to, TRAMO_2)
+      westToTramo2(to)
     }
     return { steps, trace }
   }
@@ -310,8 +370,7 @@ function resolveRoute(from: number, to: number, lang: "es" | "en" = "es"): Resol
       steps.push(...ext(5, ["Calle Cacica Quilago"], 3))
       wi(3, 2, TRAMO_1)
     } else {
-      wi(from, 9, TRAMO_2)
-      steps.push(...ext(9, ["H. Vans Risn"], 10))
+      tramo2ToWest(from)
       wi(10, PLAZOLETA_GATE, TRAMO_3)
       return { steps, trace }
     }
@@ -351,13 +410,11 @@ function resolveRoute(from: number, to: number, lang: "es" | "en" = "es"): Resol
   // P5/P6, siguen saliendo por P3 en el bloque TRAMO_1 ↔ TRAMO_2 de abajo.)
   if (from === 2 && inTramo2(to) && to > 6) {
     wi(2, 10, TRAMO_3)
-    steps.push(...ext(10, ["H. Vans Risn"], 9))
-    wi(9, to, TRAMO_2)
+    westToTramo2(to)
     return { steps, trace }
   }
   if (inTramo2(from) && from > 6 && to === 2) {
-    wi(from, 9, TRAMO_2)
-    steps.push(...ext(9, ["H. Vans Risn"], 10))
+    tramo2ToWest(from)
     wi(10, 2, TRAMO_3)
     return { steps, trace }
   }
