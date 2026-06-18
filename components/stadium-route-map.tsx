@@ -6,23 +6,23 @@ import type { RouteResult } from "@/lib/navigation"
 const VW = 850.394
 const VH = 566.929
 
-// ─── Coordenadas EXACTAS de los 13 puntos marcados (elipses) del nuevo SVG Mapa.svg ───
+// ─── Coordenadas EXACTAS de los 13 puntos marcados (elipses) del nuevo SVG MapaFinal.svg ───
 // Incluye nodo PLAZOLETA como intermediario entre P11 y P2. Orden horario.
 // índice 9 = Plazoleta (nodo virtual entre P11 y P2 en el perímetro)
 const PERIMETER: { gate: number; sub?: string; label?: string; x: number; y: number }[] = [
-  { gate: 9,  sub: "ori",  x: 207.133, y: 220.104 }, // 0  P9 Oriental  (izq-arriba)
-  { gate: 8,               x: 288.881, y: 148.813 }, // 1  P8           (esq. noroeste)
-  { gate: 7,               x: 367.85,  y: 129.368 }, // 2  P7           (arriba-izq)
-  { gate: 6,               x: 505.349, y: 129.368 }, // 3  P6           (arriba-der)
-  { gate: 5,               x: 584.151, y: 150.671 }, // 4  P5           (esq. noreste)
-  { gate: 4,  sub: "alta", x: 666.203, y: 220.369 }, // 5  P4 Alta      (der-arriba)
-  { gate: 4,  sub: "baja", x: 666.203, y: 298.672 }, // 6  P4 Baja      (der-abajo)
-  { gate: 3,               x: 583.178, y: 369.572 }, // 7  P3           (esq. sureste)
-  { gate: 2,               x: 505.053, y: 390.032 }, // 8  P2           (abajo-der)
-  { gate: 1,  label: "Plazoleta", x: 436.203, y: 390.021 }, // 9  PLAZOLETA - Puerta 1 (abajo-centro)
-  { gate: 11,              x: 367.554, y: 390.032 }, // 10 P11          (abajo-izq)
-  { gate: 10,              x: 288.781, y: 370.873 }, // 11 P10          (esq. suroeste)
-  { gate: 9,  sub: "occ",  x: 207.133, y: 298.407 }, // 12 P9 Occidental (izq-abajo)
+  { gate: 9,  sub: "ori",  x: 141.399, y: 224.179 }, // 0  P9 Oriental  (izq-arriba)
+  { gate: 8,               x: 242.722, y: 134.812 }, // 1  P8           (esq. noroeste)
+  { gate: 7,               x: 340.603, y: 110.437 }, // 2  P7           (arriba-izq)
+  { gate: 6,               x: 511.029, y: 110.437 }, // 3  P6           (arriba-der)
+  { gate: 5,               x: 608.702, y: 137.141 }, // 4  P5           (esq. noreste)
+  { gate: 4,  sub: "alta", x: 710.403, y: 224.511 }, // 5  P4 Alta      (der-arriba)
+  { gate: 4,  sub: "baja", x: 710.403, y: 322.668 }, // 6  P4 Baja      (der-abajo)
+  { gate: 3,               x: 607.496, y: 411.544 }, // 7  P3           (esq. sureste)
+  { gate: 2,               x: 510.662, y: 437.192 }, // 8  P2           (abajo-der)
+  { gate: 1,  label: "Plazoleta", x: 425.324, y: 437.178 }, // 9  PLAZOLETA - Puerta 1 (abajo-centro)
+  { gate: 11,              x: 340.236, y: 437.192 }, // 10 P11          (abajo-izq)
+  { gate: 10,              x: 242.599, y: 413.175 }, // 11 P10          (esq. suroeste)
+  { gate: 9,  sub: "occ",  x: 141.399, y: 322.336 }, // 12 P9 Occidental (izq-abajo)
 ]
 
 const N = PERIMETER.length // 13
