@@ -424,15 +424,13 @@ function resolveRoute(from: number, to: number, lang: "es" | "en" = "es"): Resol
   // salida natural hacia el oriente es por el sur (P3 → Cacica Quilago),
   // no por el norte/Plazoleta. Cae al bloque TRAMO_1 ↔ TRAMO_2.
   if (inTramo2(from) && inTramo3(to) && to !== 2) {
-    wi(from, 9, TRAMO_2)
-    steps.push(...ext(9, ["H. Vans Risn"], 10))
+    tramo2ToWest(from)
     wi(10, to, TRAMO_3)
     return { steps, trace }
   }
   if (inTramo3(from) && inTramo2(to) && from !== 2) {
     wi(from, 10, TRAMO_3)
-    steps.push(...ext(10, ["H. Vans Risn"], 9))
-    wi(9, to, TRAMO_2)
+    westToTramo2(to)
     return { steps, trace }
   }
 
@@ -490,8 +488,7 @@ function resolveRoute(from: number, to: number, lang: "es" | "en" = "es"): Resol
   }
   if (inTramo3(from) && to === 4) {
     wi(from, 10, TRAMO_3)
-    steps.push(...ext(10, ["H. Vans Risn"], 9))
-    wi(9, 5, TRAMO_2)
+    westToTramo2(5)
     steps.push(...ext(5, ["Calle Cacica Quilago", "Av. Diego Vásquez de Cepeda"], 4))
     return { steps, trace }
   }
