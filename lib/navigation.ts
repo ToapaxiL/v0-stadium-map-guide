@@ -494,8 +494,7 @@ function resolveRoute(from: number, to: number, lang: "es" | "en" = "es"): Resol
   }
   if (from === 4 && inTramo3(to)) {
     steps.push(...ext(4, ["Calle Cacica Quilago", "Av. Diego Vásquez de Cepeda"], 5))
-    wi(5, 9, TRAMO_2)
-    steps.push(...ext(9, ["H. Vans Risn"], 10))
+    tramo2ToWest(5)
     wi(10, to, TRAMO_3)
     return { steps, trace }
   }
