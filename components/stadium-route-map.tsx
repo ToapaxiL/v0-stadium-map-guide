@@ -3,26 +3,26 @@
 import { useMemo, useEffect, useRef } from "react"
 import type { RouteResult } from "@/lib/navigation"
 
-const VW = 2268.107
-const VH = 1659.623
+const VW = 850.394
+const VH = 566.929
 
-// ─── Coordenadas EXACTAS de los círculos blancos del SVG Vector-ZoIRu.svg ───
+// ─── Coordenadas EXACTAS de los 13 puntos marcados (elipses) del nuevo SVG MapaFinal.svg ───
 // Incluye nodo PLAZOLETA como intermediario entre P11 y P2. Orden horario.
 // índice 9 = Plazoleta (nodo virtual entre P11 y P2 en el perímetro)
 const PERIMETER: { gate: number; sub?: string; label?: string; x: number; y: number }[] = [
-  { gate: 9,  sub: "ori",  x: 447.991,  y: 670.308  }, // 0  P9 Oriental  (izq-arriba)
-  { gate: 8,               x: 713.423,  y: 466.789  }, // 1  P8
-  { gate: 7,               x: 952.45,   y: 388.887  }, // 2  P7
-  { gate: 6,               x: 1384.029, y: 388.887  }, // 3  P6
-  { gate: 5,               x: 1622.089, y: 466.789  }, // 4  P5
-  { gate: 4,  sub: "alta", x: 1888.917, y: 671.128  }, // 5  P4 Alta      (der-arriba)
-  { gate: 4,  sub: "baja", x: 1888.917, y: 913.99   }, // 6  P4 Baja      (der-abajo)
-  { gate: 3,               x: 1622.089, y: 1120.456 }, // 7  P3
-  { gate: 2,               x: 1383.1,   y: 1197.347 }, // 8  P2
-  { gate: 1,  label: "Plazoleta", x: 1166.994, y: 1197.312 }, // 9  PLAZOLETA - Puerta 1 (intermedio P2↔P11)
-  { gate: 11,              x: 951.52,   y: 1197.347 }, // 10 P11
-  { gate: 10,              x: 713.423,  y: 1126.789 }, // 11 P10
-  { gate: 9,  sub: "occ",  x: 447.991,  y: 913.169  }, // 12 P9 Occidental (izq-abajo)
+  { gate: 9,  sub: "ori",  x: 141.399, y: 224.179 }, // 0  P9 Oriental  (izq-arriba)
+  { gate: 8,               x: 242.722, y: 134.812 }, // 1  P8           (esq. noroeste)
+  { gate: 7,               x: 340.603, y: 110.437 }, // 2  P7           (arriba-izq)
+  { gate: 6,               x: 511.029, y: 110.437 }, // 3  P6           (arriba-der)
+  { gate: 5,               x: 608.702, y: 137.141 }, // 4  P5           (esq. noreste)
+  { gate: 4,  sub: "alta", x: 710.403, y: 224.511 }, // 5  P4 Alta      (der-arriba)
+  { gate: 4,  sub: "baja", x: 710.403, y: 322.668 }, // 6  P4 Baja      (der-abajo)
+  { gate: 3,               x: 607.496, y: 411.544 }, // 7  P3           (esq. sureste)
+  { gate: 2,               x: 510.662, y: 437.192 }, // 8  P2           (abajo-der)
+  { gate: 1,  label: "Plazoleta", x: 425.324, y: 437.178 }, // 9  PLAZOLETA - Puerta 1 (abajo-centro)
+  { gate: 11,              x: 340.236, y: 437.192 }, // 10 P11          (abajo-izq)
+  { gate: 10,              x: 242.599, y: 413.175 }, // 11 P10          (esq. suroeste)
+  { gate: 9,  sub: "occ",  x: 141.399, y: 322.336 }, // 12 P9 Occidental (izq-abajo)
 ]
 
 const N = PERIMETER.length // 13
@@ -214,7 +214,7 @@ export function StadiumRouteMap({ result }: Props) {
         >
           <defs>
             <filter id="glow">
-              <feGaussianBlur stdDeviation="12" result="blur" />
+              <feGaussianBlur stdDeviation="4" result="blur" />
               <feMerge>
                 <feMergeNode in="blur" />
                 <feMergeNode in="SourceGraphic" />
@@ -231,7 +231,7 @@ export function StadiumRouteMap({ result }: Props) {
             return (
               <circle
                 key={i}
-                cx={p.x} cy={p.y} r={14}
+                cx={p.x} cy={p.y} r={5}
                 fill="white"
                 opacity={0.7}
               />
@@ -244,7 +244,7 @@ export function StadiumRouteMap({ result }: Props) {
               d={pathD}
               fill="none"
               stroke="white"
-              strokeWidth={22}
+              strokeWidth={8}
               strokeLinecap="round"
               strokeLinejoin="round"
               opacity={0.9}
@@ -258,7 +258,7 @@ export function StadiumRouteMap({ result }: Props) {
               d={pathD}
               fill="none"
               stroke="#f97316"
-              strokeWidth={14}
+              strokeWidth={5}
               strokeLinecap="round"
               strokeLinejoin="round"
               strokeDasharray={`${len}`}
@@ -273,7 +273,7 @@ export function StadiumRouteMap({ result }: Props) {
               d={pathD}
               fill="none"
               stroke="#f97316"
-              strokeWidth={8}
+              strokeWidth={3}
               strokeLinecap="round"
               strokeLinejoin="round"
               strokeDasharray={`${len}`}
@@ -282,41 +282,41 @@ export function StadiumRouteMap({ result }: Props) {
           )}
 
           {/* Pulso en punto A */}
-          <circle cx={posA.x} cy={posA.y} r={40} fill="#22c55e" opacity={0.15}>
-            <animate attributeName="r" values="28;48;28" dur="2s" repeatCount="indefinite" />
+          <circle cx={posA.x} cy={posA.y} r={15} fill="#22c55e" opacity={0.15}>
+            <animate attributeName="r" values="10;18;10" dur="2s" repeatCount="indefinite" />
             <animate attributeName="opacity" values="0.2;0.05;0.2" dur="2s" repeatCount="indefinite" />
           </circle>
           {/* Marcador A */}
-          <circle cx={posA.x} cy={posA.y} r={24} fill="#22c55e" stroke="white" strokeWidth={4} />
+          <circle cx={posA.x} cy={posA.y} r={9} fill="#22c55e" stroke="white" strokeWidth={1.5} />
           <text
             x={posA.x} y={posA.y}
             textAnchor="middle" dominantBaseline="central"
-            fill="white" fontSize={20} fontWeight="900" fontFamily="system-ui,sans-serif"
+            fill="white" fontSize={8} fontWeight="900" fontFamily="system-ui,sans-serif"
           >A</text>
-          <rect x={posA.x - 30} y={posA.y - 74} width={60} height={28} rx={8} fill="#22c55e" />
+          <rect x={posA.x - 11} y={posA.y - 28} width={22} height={11} rx={3} fill="#22c55e" />
           <text
-            x={posA.x} y={posA.y - 60}
+            x={posA.x} y={posA.y - 22}
             textAnchor="middle" dominantBaseline="central"
-            fill="white" fontSize={16} fontWeight="700" fontFamily="system-ui,sans-serif"
+            fill="white" fontSize={6} fontWeight="700" fontFamily="system-ui,sans-serif"
           >P{posA.gate}</text>
 
           {/* Pulso en punto B */}
-          <circle cx={posB.x} cy={posB.y} r={40} fill="#ef4444" opacity={0.15}>
-            <animate attributeName="r" values="28;48;28" dur="2s" repeatCount="indefinite" begin="0.5s" />
+          <circle cx={posB.x} cy={posB.y} r={15} fill="#ef4444" opacity={0.15}>
+            <animate attributeName="r" values="10;18;10" dur="2s" repeatCount="indefinite" begin="0.5s" />
             <animate attributeName="opacity" values="0.2;0.05;0.2" dur="2s" repeatCount="indefinite" begin="0.5s" />
           </circle>
           {/* Marcador B */}
-          <circle cx={posB.x} cy={posB.y} r={24} fill="#ef4444" stroke="white" strokeWidth={4} />
+          <circle cx={posB.x} cy={posB.y} r={9} fill="#ef4444" stroke="white" strokeWidth={1.5} />
           <text
             x={posB.x} y={posB.y}
             textAnchor="middle" dominantBaseline="central"
-            fill="white" fontSize={20} fontWeight="900" fontFamily="system-ui,sans-serif"
+            fill="white" fontSize={8} fontWeight="900" fontFamily="system-ui,sans-serif"
           >B</text>
-          <rect x={posB.x - 30} y={posB.y - 74} width={60} height={28} rx={8} fill="#ef4444" />
+          <rect x={posB.x - 11} y={posB.y - 28} width={22} height={11} rx={3} fill="#ef4444" />
           <text
-            x={posB.x} y={posB.y - 60}
+            x={posB.x} y={posB.y - 22}
             textAnchor="middle" dominantBaseline="central"
-            fill="white" fontSize={16} fontWeight="700" fontFamily="system-ui,sans-serif"
+            fill="white" fontSize={6} fontWeight="700" fontFamily="system-ui,sans-serif"
           >P{posB.gate}</text>
         </svg>
       </div>
