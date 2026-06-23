@@ -236,14 +236,6 @@ export function StadiumMap() {
                         <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#f96969" }} />
                         <span className="text-muted-foreground">{t("west")}</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#825491" }} />
-                        <span className="text-muted-foreground">{t("baptism")}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#e6e3d2" }} />
-                        <span className="text-muted-foreground">{t("signLanguage")}</span>
-                      </div>
                     </div>
                   </div>
                 </div>
@@ -331,14 +323,6 @@ export function StadiumMap() {
                         <div className="flex items-center gap-2">
                           <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#f96969" }} />
                           <span className="text-sm text-muted-foreground">{t("west")}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#825491" }} />
-                          <span className="text-sm text-muted-foreground">{t("baptism")}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#e6e3d2" }} />
-                          <span className="text-sm text-muted-foreground">{t("signLanguage")}</span>
                         </div>
                       </div>
                     </div>

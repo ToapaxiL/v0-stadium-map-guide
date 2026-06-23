@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { calculateRoute, getSectionName, ALL_SECTIONS, type RouteResult, type RouteStep } from "@/lib/navigation"
 import { Navigation, ArrowUpDown, MapPin, Footprints, DoorOpen, DoorClosed, Flag, TriangleAlert, ChevronDown } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -95,6 +95,14 @@ export function NavigationGuide() {
     if (!from || !to || from === to) return
     setResult(calculateRoute(from, to, language))
   }
+
+  // Vuelve a calcular la ruta (y sus indicaciones traducidas) al cambiar el idioma
+  useEffect(() => {
+    if (result && from && to && from !== to) {
+      setResult(calculateRoute(from, to, language))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [language])
 
   const handleClear = () => {
     setFrom("")
