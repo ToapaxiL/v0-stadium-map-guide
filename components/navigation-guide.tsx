@@ -79,11 +79,16 @@ function NativeSelect({
   )
 }
 
-export function NavigationGuide() {
+export function NavigationGuide({ onRouteActiveChange }: { onRouteActiveChange?: (active: boolean) => void } = {}) {
   const { language } = useLanguage()
   const [from, setFrom] = useState("")
   const [to, setTo]     = useState("")
   const [result, setResult] = useState<RouteResult | null>(null)
+
+  // Notifica al contenedor si hay una ruta activa (para ocultar el mapa general)
+  useEffect(() => {
+    onRouteActiveChange?.(!!result)
+  }, [result, onRouteActiveChange])
 
   const handleSwap = () => {
     setFrom(to)

@@ -46,6 +46,7 @@ export function StadiumMap() {
   }, [isDarkMode])
   const [selectedService, setSelectedService] = useState<Service | null>(null)
   const [activeTab, setActiveTab] = useState("navigate")
+  const [hasActiveRoute, setHasActiveRoute] = useState(false)
   const filteredSections = stadiumSections.filter((section: StadiumSection) => {
     const matchesFilter = filter === "all" || section.type === filter
     const matchesSearch =
@@ -181,11 +182,12 @@ export function StadiumMap() {
           <TabsContent value="navigate">
             <div className="grid lg:grid-cols-5 gap-6">
               {/* Columna izquierda: calculadora de rutas */}
-              <div className="lg:col-span-2">
-                <NavigationGuide />
+              <div className={hasActiveRoute ? "lg:col-span-5" : "lg:col-span-2"}>
+                <NavigationGuide onRouteActiveChange={setHasActiveRoute} />
               </div>
 
-              {/* Columna derecha: mapa del estadio */}
+              {/* Columna derecha: mapa del estadio (oculto cuando hay una ruta activa) */}
+              {!hasActiveRoute && (
               <div className="lg:col-span-3">
                 <div className="rounded-xl overflow-hidden border border-border bg-card">
                   <div
@@ -240,6 +242,7 @@ export function StadiumMap() {
                   </div>
                 </div>
               </div>
+              )}
             </div>
           </TabsContent>
 
