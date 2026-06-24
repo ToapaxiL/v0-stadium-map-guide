@@ -79,17 +79,11 @@ function NativeSelect({
   )
 }
 
-export function NavigationGuide({ onRouteChange }: { onRouteChange?: (hasRoute: boolean) => void }) {
+export function NavigationGuide() {
   const { language } = useLanguage()
   const [from, setFrom] = useState("")
   const [to, setTo]     = useState("")
   const [result, setResult] = useState<RouteResult | null>(null)
-
-  // Notifica al contenedor si hay una ruta calculada (para ocultar el mapa general)
-  useEffect(() => {
-    onRouteChange?.(!!result)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [result])
 
   const handleSwap = () => {
     setFrom(to)
