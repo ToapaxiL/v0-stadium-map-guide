@@ -461,25 +461,6 @@ export function StadiumMap() {
             </div>
           </TabsContent>
         </Tabs>
-
-        <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-card rounded-xl p-4 border border-border text-center">
-            <p className="text-3xl font-bold text-primary">12</p>
-            <p className="text-sm text-muted-foreground">{t("sectionsCount")}</p>
-          </div>
-          <div className="bg-card rounded-xl p-4 border border-border text-center">
-            <p className="text-3xl font-bold text-primary">10</p>
-            <p className="text-sm text-muted-foreground">{t("accessCount")}</p>
-          </div>
-          <div className="bg-card rounded-xl p-4 border border-border text-center">
-            <p className="text-3xl font-bold text-primary">45K+</p>
-            <p className="text-sm text-muted-foreground">{t("capacity")}</p>
-          </div>
-          <div className="bg-card rounded-xl p-4 border border-border text-center">
-            <p className="text-3xl font-bold text-primary">18</p>
-            <p className="text-sm text-muted-foreground">{t("pointsOfInterest")}</p>
-          </div>
-        </div>
       </main>
 
       <footer className="border-t border-border mt-12">
