@@ -72,6 +72,9 @@ export const translations = {
     destination: "Destino",
     selectBothLocations: "Selecciona origen y destino para ver la ruta",
     gate: "Puerta",
+    routeMap: "Mapa de ruta",
+    access: "Acceso",
+    includedServices: "Servicios incluidos",
 
     // Explore
     searchPlaceholder: "Buscar por sección o acceso...",
@@ -210,6 +213,9 @@ export const translations = {
     destination: "Destination",
     selectBothLocations: "Select origin and destination to see the route",
     gate: "Gate",
+    routeMap: "Route map",
+    access: "Access",
+    includedServices: "Included services",
 
     // Explore
     searchPlaceholder: "Search by section or access...",
