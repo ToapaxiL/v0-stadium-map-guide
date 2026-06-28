@@ -1,9 +1,16 @@
 "use client"
 
-import { type StadiumSection, sectionTypeLabels } from "@/lib/stadium-data"
+import {
+  type StadiumSection,
+  getSectionTypeLabel,
+  translateCapacity,
+  translateSubsections,
+  translateAccess,
+} from "@/lib/stadium-data"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { MapPin, Users } from "lucide-react"
+import { useLanguage } from "@/lib/language-context"
 
 interface SectionCardProps {
   section: StadiumSection
@@ -12,6 +19,8 @@ interface SectionCardProps {
 }
 
 export function SectionCard({ section, isSelected, onClick }: SectionCardProps) {
+  const { language, t } = useLanguage()
+
   return (
     <Card
       className={`cursor-pointer transition-all duration-300 hover:scale-[1.02] ${
@@ -26,19 +35,23 @@ export function SectionCard({ section, isSelected, onClick }: SectionCardProps) 
             <CardTitle className="text-sm font-bold text-foreground leading-tight">{section.name}</CardTitle>
           </div>
           <Badge variant="secondary" className="text-xs shrink-0">
-            {sectionTypeLabels[section.type]}
+            {getSectionTypeLabel(section.type, language)}
           </Badge>
         </div>
       </CardHeader>
       <CardContent className="pt-0 space-y-2">
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <MapPin className="w-3 h-3" />
-          <span>{section.access}</span>
+          <span>{translateAccess(section.access, language)}</span>
         </div>
-        {section.subsections && <p className="text-xs text-muted-foreground">Secciones: {section.subsections}</p>}
+        {section.subsections && (
+          <p className="text-xs text-muted-foreground">
+            {t("sections")}: {translateSubsections(section.subsections, language)}
+          </p>
+        )}
         <div className="flex items-center gap-1 text-xs text-muted-foreground">
           <Users className="w-3 h-3" />
-          <span>{section.capacity}</span>
+          <span>{translateCapacity(section.capacity, language)}</span>
         </div>
       </CardContent>
     </Card>

@@ -2,6 +2,7 @@
 
 import { useMemo, useEffect, useRef } from "react"
 import type { RouteResult } from "@/lib/navigation"
+import { useLanguage } from "@/lib/language-context"
 
 const VW = 850.394
 const VH = 566.929
@@ -136,6 +137,7 @@ function pathLength(pts: { x: number; y: number }[]): number {
 interface Props { result: RouteResult }
 
 export function StadiumRouteMap({ result }: Props) {
+  const { t } = useLanguage()
   const pathRef  = useRef<SVGPathElement>(null)
   const glowRef  = useRef<SVGPathElement>(null)
 
@@ -186,15 +188,15 @@ export function StadiumRouteMap({ result }: Props) {
   return (
     <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
       <div className="px-5 py-3 border-b border-border flex items-center justify-between">
-        <p className="text-sm font-bold text-foreground uppercase tracking-wide">Mapa de ruta</p>
+        <p className="text-sm font-bold text-foreground uppercase tracking-wide">{t("routeMap")}</p>
         <div className="flex items-center gap-4 text-xs text-muted-foreground">
           <span className="flex items-center gap-1.5">
             <span className="w-3 h-3 rounded-full bg-emerald-500 inline-block" />
-            Origen
+            {t("origin")}
           </span>
           <span className="flex items-center gap-1.5">
             <span className="w-3 h-3 rounded-full bg-red-500 inline-block" />
-            Destino
+            {t("destination")}
           </span>
         </div>
       </div>

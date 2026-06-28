@@ -230,3 +230,60 @@ export const sectionTypeColors: Record<SectionType, string> = {
   palco: "bg-emerald-600",
   general: "bg-sky-500",
 }
+
+// ─── Internacionalización de los datos del estadio ───
+type Lang = "es" | "en"
+
+// Descripciones en inglés por id de sección (las españolas viven en el array de arriba)
+const sectionDescriptionsEn: Record<string, string> = {
+  "palco-norte-oriental": "Box with exclusive services and a privileged view of the field.",
+  "palco-sur-oriental": "VIP area with exclusive services and a panoramic view.",
+  "tribuna-norte-oriental": "Stand with an excellent view and easy access.",
+  "tribuna-sur-oriental": "Stand with a full view of the field and a family-friendly atmosphere.",
+  "palco-norte-occidental": "Premium experience with all services included.",
+  "palco-sur-occidental": "VIP area with exclusive services and a panoramic view.",
+  "tribuna-norte-occidental": "Strategic midfield view with shade in the afternoon.",
+  "tribuna-sur-occidental": "Privileged view of the field with an excellent viewing angle.",
+  "general-norte-oriental": "General section with an authentic sporting atmosphere.",
+  "general-norte-occidental": "General area with a great atmosphere and affordable prices.",
+  "general-sur-alta": "Upper area with a panoramic view of the stadium.",
+  "general-sur-baja": "Fan zone close to the pitch. Atmosphere of maximum passion.",
+}
+
+const sectionTypeLabelsEn: Record<SectionType, string> = {
+  tribuna: "Stand",
+  palco: "Box",
+  general: "General",
+}
+
+export function getSectionDescription(section: StadiumSection, language: Lang): string {
+  return language === "en" ? sectionDescriptionsEn[section.id] ?? section.description : section.description
+}
+
+export function getSectionTypeLabel(type: SectionType, language: Lang): string {
+  return language === "en" ? sectionTypeLabelsEn[type] : sectionTypeLabels[type]
+}
+
+export function translateCapacity(capacity: string, language: Lang): string {
+  if (language !== "en") return capacity
+  return capacity.replace("asientos", "seats").replace("espectadores", "spectators")
+}
+
+export function translateSubsections(subsections: string, language: Lang): string {
+  if (language !== "en") return subsections
+  return subsections.replace("Alta y Baja", "Upper and Lower")
+}
+
+export function translateAccess(access: string, language: Lang): string {
+  if (language !== "en") return access
+  return access.replace("Puerta", "Gate")
+}
+
+const amenityLabelsEn: Record<string, string> = {
+  "Baño": "Restroom",
+}
+
+export function translateAmenity(amenity: string, language: Lang): string {
+  if (language !== "en") return amenity
+  return amenityLabelsEn[amenity] ?? amenity
+}
