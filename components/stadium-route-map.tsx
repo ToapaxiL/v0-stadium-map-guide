@@ -7,23 +7,23 @@ import { useLanguage } from "@/lib/language-context"
 const VW = 850.394
 const VH = 566.929
 
-// ─── Coordenadas EXACTAS de los 13 puntos marcados (elipses) del nuevo SVG MapaVectorFinal.svg ───
+// ─── Coordenadas EXACTAS de los 13 puntos marcados (elipses) del nuevo SVG MapaVector.svg ───
 // Incluye nodo PLAZOLETA como intermediario entre P11 y P2. Orden horario.
 // índice 9 = Plazoleta (nodo virtual entre P11 y P2 en el perímetro)
 const PERIMETER: { gate: number; sub?: string; label?: string; x: number; y: number }[] = [
   { gate: 9,  sub: "ori",  x: 275.996, y: 224.819 }, // 0  P9 Oriental  (izq-arriba)
-  { gate: 8,               x: 345.981, y: 170.188 }, // 1  P8           (esq. noroeste)
+  { gate: 8,               x: 345.983, y: 170.188 }, // 1  P8           (esq. noroeste)
   { gate: 7,               x: 409.189, y: 153.438 }, // 2  P7           (arriba-izq)
   { gate: 6,               x: 537.972, y: 153.438 }, // 3  P6           (arriba-der)
-  { gate: 5,               x: 600.634, y: 170.31  }, // 4  P5           (esq. noreste)
-  { gate: 4,  sub: "alta", x: 670.291, y: 225.054 }, // 5  P4 Alta      (der-arriba)
-  { gate: 4,  sub: "baja", x: 670.291, y: 294.421 }, // 6  P4 Baja      (der-abajo)
+  { gate: 5,               x: 599.981, y: 170.31  }, // 4  P5           (esq. noreste)
+  { gate: 4,  sub: "alta", x: 670.291, y: 224.819 }, // 5  P4 Alta      (der-arriba)
+  { gate: 4,  sub: "baja", x: 670.291, y: 294.188 }, // 6  P4 Baja      (der-abajo)
   { gate: 3,               x: 599.981, y: 348.188 }, // 7  P3           (esq. sureste)
-  { gate: 2,               x: 537.699, y: 362.356 }, // 8  P2           (abajo-der)
-  { gate: 1,  label: "Plazoleta", x: 474.215, y: 383.346 }, // 9  PLAZOLETA - Puerta 1 (abajo-centro)
-  { gate: 11,              x: 408.916, y: 362.356 }, // 10 P11          (abajo-izq)
+  { gate: 2,               x: 537.973, y: 363.356 }, // 8  P2           (abajo-der)
+  { gate: 1,  label: "Plazoleta", x: 474.215, y: 388.346 }, // 9  PLAZOLETA - Puerta 1 (abajo-centro)
+  { gate: 11,              x: 409.190, y: 363.356 }, // 10 P11          (abajo-izq)
   { gate: 10,              x: 345.981, y: 348.188 }, // 11 P10          (esq. suroeste)
-  { gate: 9,  sub: "occ",  x: 275.996, y: 294.187 }, // 12 P9 Occidental (izq-abajo)
+  { gate: 9,  sub: "occ",  x: 275.995, y: 294.187 }, // 12 P9 Occidental (izq-abajo)
 ]
 
 const N = PERIMETER.length // 13
