@@ -259,7 +259,7 @@ export function StadiumRouteMap({ result }: Props) {
               ref={glowRef}
               d={pathD}
               fill="none"
-              stroke="#f97316"
+              stroke="#00E5FF"
               strokeWidth={5}
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -274,7 +274,7 @@ export function StadiumRouteMap({ result }: Props) {
               ref={pathRef}
               d={pathD}
               fill="none"
-              stroke="#f97316"
+              stroke="#00E5FF"
               strokeWidth={3}
               strokeLinecap="round"
               strokeLinejoin="round"
