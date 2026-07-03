@@ -7,12 +7,13 @@
 //   - Entre secciones contiguas del anillo: 100 m por tramo.
 //   - Excepción: Palco Sur Occidental (P2) ↔ Plazoleta (P1): 50 m.
 //
-// TIEMPO (rango, según recorridos acumulados provistos):
-//   200 m: 2.5–3 min  (3–5 min con público)
-//   400 m: 5–6 min    (6–10 min con público)
-//   600 m: 7.5–9 min  (9–13 min con público)
-//   800 m: 10–12 min  (12–18 min con público)
+// TIEMPO (rango en minutos ENTEROS, según recorridos acumulados provistos):
+//   200 m: 3–5 min con público
+//   400 m: 5–10 min con público
+//   600 m: 8–13 min con público
+//   800 m: 10–18 min con público
 //   Se muestra el rango realista: mejor caso normal → peor caso con público.
+//   Nunca se usan decimales.
 // ============================================================
 
 import type { RouteResult } from "./navigation"
@@ -132,10 +133,6 @@ const CROWD_HIGH: [number, number][] = [
   [0, 0], [200, 5], [400, 10], [600, 13], [800, 18],
 ]
 
-function round05(x: number): number {
-  return Math.round(x * 2) / 2
-}
-
 export interface RouteTime {
   /** Minutos, mejor caso en condiciones normales. */
   lowMin: number
@@ -143,14 +140,17 @@ export interface RouteTime {
   highMin: number
 }
 
-/** Rango de tiempo estimado: normal (rápido) → con público (lento). */
+/** Rango de tiempo estimado: normal (rápido) → con público (lento). Siempre enteros. */
 export function routeTimeRange(meters: number): RouteTime {
   const low = meters * 0.0125 // 2.5 min por 200 m
   const high = piecewise(meters, CROWD_HIGH)
-  return { lowMin: round05(low), highMin: round05(high) }
+  const lowMin = Math.max(1, Math.round(low))
+  let highMin = Math.round(high)
+  if (highMin <= lowMin) highMin = lowMin + 1
+  return { lowMin, highMin }
 }
 
-/** Formatea minutos: entero sin decimales, medios con ".5". */
+/** Formatea minutos: siempre entero, sin decimales. */
 export function formatMinutes(min: number): string {
-  return Number.isInteger(min) ? String(min) : min.toFixed(1)
+  return String(Math.round(min))
 }
