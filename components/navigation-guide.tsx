@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { calculateRoute, getSectionName, ALL_SECTIONS, type RouteResult, type RouteStep } from "@/lib/navigation"
-import { Navigation, ArrowUpDown, MapPin, Footprints, DoorOpen, DoorClosed, Flag, TriangleAlert, ChevronDown } from "lucide-react"
+import { routeDistanceMeters, routeTimeRange, formatMinutes } from "@/lib/route-metrics"
+import { Navigation, ArrowUpDown, MapPin, Footprints, DoorOpen, DoorClosed, Flag, TriangleAlert, ChevronDown, Clock } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { StadiumRouteMap } from "./stadium-route-map"
 import { useLanguage } from "@/lib/language-context"
@@ -234,26 +235,52 @@ export function NavigationGuide({ onRouteActiveChange }: { onRouteActiveChange?:
         <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
 
           {/* Header resultado */}
-          <div className="px-5 py-4 border-b border-border">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-xs text-muted-foreground mb-1 uppercase tracking-wide font-semibold">
-                  {language === "es" ? "Ruta calculada" : "Calculated route"}
-                </p>
-                <p className="text-sm font-bold text-foreground leading-snug">
-                  {getSectionName(result.from, language)}
-                  <span className="text-muted-foreground font-normal mx-2">→</span>
-                  {getSectionName(result.to, language)}
-                </p>
+          {(() => {
+            const meters = routeDistanceMeters(result)
+            const { lowMin, highMin } = routeTimeRange(meters)
+            const timeLabel = `${formatMinutes(lowMin)}–${formatMinutes(highMin)} min`
+            const distLabel = `${meters} m`
+            return (
+              <div className="px-5 py-4 border-b border-border">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1 uppercase tracking-wide font-semibold">
+                      {language === "es" ? "Ruta calculada" : "Calculated route"}
+                    </p>
+                    <p className="text-sm font-bold text-foreground leading-snug">
+                      {getSectionName(result.from, language)}
+                      <span className="text-muted-foreground font-normal mx-2">→</span>
+                      {getSectionName(result.to, language)}
+                    </p>
+                  </div>
+                  {result.usesExterior && (
+                    <span className="shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-100 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/50 text-amber-700 dark:text-amber-400 text-xs font-semibold">
+                      <TriangleAlert className="w-3 h-3" />
+                      {language === "es" ? "Exterior" : "Exterior"}
+                    </span>
+                  )}
+                </div>
+
+                {/* Simbología: tiempo estimado (rango) + distancia exacta */}
+                <div className="flex flex-wrap items-center gap-2 mt-3">
+                  <span
+                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary text-primary-foreground text-xs font-semibold"
+                    aria-label={`${language === "es" ? "Tiempo estimado" : "Estimated time"}: ${timeLabel}`}
+                  >
+                    <Clock className="w-3.5 h-3.5" aria-hidden="true" />
+                    {timeLabel}
+                  </span>
+                  <span
+                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary text-primary-foreground text-xs font-semibold"
+                    aria-label={`${language === "es" ? "Distancia" : "Distance"}: ${distLabel}`}
+                  >
+                    <MapPin className="w-3.5 h-3.5" aria-hidden="true" />
+                    {distLabel}
+                  </span>
+                </div>
               </div>
-              {result.usesExterior && (
-                <span className="shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-100 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/50 text-amber-700 dark:text-amber-400 text-xs font-semibold">
-                  <TriangleAlert className="w-3 h-3" />
-                  {language === "es" ? "Exterior" : "Exterior"}
-                </span>
-              )}
-            </div>
-          </div>
+            )
+          })()}
 
           {/* Pasos */}
           <div className="p-4 space-y-1.5">
