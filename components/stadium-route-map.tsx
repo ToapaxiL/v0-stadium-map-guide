@@ -28,6 +28,24 @@ const PERIMETER: { gate: number; sub?: string; label?: string; x: number; y: num
 
 const N = PERIMETER.length // 13
 
+// Centro geométrico del anillo de puertas. Las etiquetas rojas (P6, P7, …) se
+// desplazan hacia este centro para que queden SIEMPRE dentro del estadio y
+// nunca encima de los textos de las secciones (que están por fuera del anillo).
+const CENTER = {
+  x: PERIMETER.reduce((s, p) => s + p.x, 0) / N,
+  y: PERIMETER.reduce((s, p) => s + p.y, 0) / N,
+}
+
+// Devuelve el centro de la etiqueta de puerta, desplazado hacia el centro del
+// estadio respecto al marcador, para evitar solaparse con los rótulos externos.
+function gateBadgeCenter(p: { x: number; y: number }): { x: number; y: number } {
+  const dx = CENTER.x - p.x
+  const dy = CENTER.y - p.y
+  const d = Math.hypot(dx, dy) || 1
+  const off = 22
+  return { x: p.x + (dx / d) * off, y: p.y + (dy / d) * off }
+}
+
 // Sección → índice en el perímetro
 function sectionToIndex(section: string): number {
   const map: Record<string, number> = {
@@ -277,12 +295,19 @@ export function StadiumRouteMap({ result }: Props) {
             textAnchor="middle" dominantBaseline="central"
             fill="white" fontSize={8} fontWeight="900" fontFamily="system-ui,sans-serif"
           >A</text>
-          <rect x={posA.x - 11} y={posA.y - 28} width={22} height={11} rx={3} fill="#22c55e" />
-          <text
-            x={posA.x} y={posA.y - 22}
-            textAnchor="middle" dominantBaseline="central"
-            fill="white" fontSize={6} fontWeight="700" fontFamily="system-ui,sans-serif"
-          >P{posA.gate}</text>
+          {(() => {
+            const b = gateBadgeCenter(posA)
+            return (
+              <>
+                <rect x={b.x - 11} y={b.y - 5.5} width={22} height={11} rx={3} fill="#22c55e" />
+                <text
+                  x={b.x} y={b.y}
+                  textAnchor="middle" dominantBaseline="central"
+                  fill="white" fontSize={6} fontWeight="700" fontFamily="system-ui,sans-serif"
+                >P{posA.gate}</text>
+              </>
+            )
+          })()}
 
           {/* Pulso en punto B */}
           <circle cx={posB.x} cy={posB.y} r={15} fill="#ef4444" opacity={0.15}>
@@ -296,12 +321,19 @@ export function StadiumRouteMap({ result }: Props) {
             textAnchor="middle" dominantBaseline="central"
             fill="white" fontSize={8} fontWeight="900" fontFamily="system-ui,sans-serif"
           >B</text>
-          <rect x={posB.x - 11} y={posB.y - 28} width={22} height={11} rx={3} fill="#ef4444" />
-          <text
-            x={posB.x} y={posB.y - 22}
-            textAnchor="middle" dominantBaseline="central"
-            fill="white" fontSize={6} fontWeight="700" fontFamily="system-ui,sans-serif"
-          >P{posB.gate}</text>
+          {(() => {
+            const b = gateBadgeCenter(posB)
+            return (
+              <>
+                <rect x={b.x - 11} y={b.y - 5.5} width={22} height={11} rx={3} fill="#ef4444" />
+                <text
+                  x={b.x} y={b.y}
+                  textAnchor="middle" dominantBaseline="central"
+                  fill="white" fontSize={6} fontWeight="700" fontFamily="system-ui,sans-serif"
+                >P{posB.gate}</text>
+              </>
+            )
+          })()}
         </svg>
       </div>
     </div>
