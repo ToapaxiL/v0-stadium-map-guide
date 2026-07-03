@@ -11,13 +11,12 @@
 //       · General Sur Alta ↔ General Sur Baja
 //       · General Norte Oriental ↔ General Norte Occidental
 //
-// TIEMPO (rango en minutos ENTEROS, según recorridos acumulados provistos):
-//   200 m: 3–5 min con público
-//   400 m: 5–10 min con público
-//   600 m: 8–13 min con público
-//   800 m: 10–18 min con público
-//   Se muestra el rango realista: mejor caso normal → peor caso con público.
-//   Nunca se usan decimales.
+// TIEMPO (rango ESTRECHO en minutos ENTEROS, realista con público):
+//   200 m: 3–4 min
+//   400 m: 6–8 min
+//   600 m: 9–12 min
+//   800 m: 12–16 min
+//   Ritmo fluido → tráfico peatonal denso. Nunca se usan decimales.
 // ============================================================
 
 import type { RouteResult } from "./navigation"
@@ -125,37 +124,25 @@ export function routeDistanceMeters(result: RouteResult): number {
   return m
 }
 
-// Interpolación lineal por tramos sobre puntos ancla [metros, minutos].
-function piecewise(m: number, anchors: [number, number][]): number {
-  if (m <= anchors[0][0]) return anchors[0][1]
-  for (let i = 1; i < anchors.length; i++) {
-    const [x0, y0] = anchors[i - 1]
-    const [x1, y1] = anchors[i]
-    if (m <= x1) return y0 + ((y1 - y0) * (m - x0)) / (x1 - x0)
-  }
-  const [x0, y0] = anchors[anchors.length - 2]
-  const [x1, y1] = anchors[anchors.length - 1]
-  return y1 + ((y1 - y0) * (m - x1)) / (x1 - x0)
-}
-
-// Peor caso con público (no lineal): sigue exactamente la tabla provista.
-const CROWD_HIGH: [number, number][] = [
-  [0, 0], [200, 5], [400, 10], [600, 13], [800, 18],
-]
+// Ritmos realistas para un estadio con público (concourse con gente en
+// movimiento, sin llegar a aglomeración extrema). Rango estrecho:
+//   - Bajo:  3 min por 200 m  (0.015 min/m)  → paso fluido entre gente
+//   - Alto:  4 min por 200 m  (0.020 min/m)  → tráfico peatonal denso
+// Ejemplos: 200 m ≈ 3–4 min · 400 m ≈ 6–8 min · 600 m ≈ 9–12 min · 800 m ≈ 12–16 min
+const LOW_RATE = 0.015
+const HIGH_RATE = 0.02
 
 export interface RouteTime {
-  /** Minutos, mejor caso en condiciones normales. */
+  /** Minutos, ritmo fluido con público. */
   lowMin: number
-  /** Minutos, peor caso durante ingreso/salida con público. */
+  /** Minutos, tráfico peatonal denso. */
   highMin: number
 }
 
-/** Rango de tiempo estimado: normal (rápido) → con público (lento). Siempre enteros. */
+/** Rango de tiempo estimado realista con público. Siempre enteros. */
 export function routeTimeRange(meters: number): RouteTime {
-  const low = meters * 0.0125 // 2.5 min por 200 m
-  const high = piecewise(meters, CROWD_HIGH)
-  const lowMin = Math.max(1, Math.round(low))
-  let highMin = Math.round(high)
+  const lowMin = Math.max(1, Math.round(meters * LOW_RATE))
+  let highMin = Math.round(meters * HIGH_RATE)
   if (highMin <= lowMin) highMin = lowMin + 1
   return { lowMin, highMin }
 }
