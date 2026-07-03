@@ -157,9 +157,7 @@ export function StadiumRouteMap({ result }: Props) {
     const pathD = toD(pts)
     const len   = pathLength(pts)
 
-    const activeIndices = new Set(routeIndices)
-
-    return { iA, iB, posA, posB, pathD, len, activeIndices }
+    return { iA, iB, posA, posB, pathD, len }
   }, [result])
 
   // Animación draw-on
@@ -183,7 +181,7 @@ export function StadiumRouteMap({ result }: Props) {
     return () => cancelAnimationFrame(raf1)
   }, [data])
 
-  const { posA, posB, pathD, len, activeIndices } = data
+  const { posA, posB, pathD, len } = data
 
   return (
     <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
@@ -223,22 +221,6 @@ export function StadiumRouteMap({ result }: Props) {
               </feMerge>
             </filter>
           </defs>
-
-          {/* Solo los puntos intermedios de la ruta (no A ni B) */}
-          {PERIMETER.map((p, i) => {
-            const isA = i === data.iA
-            const isB = i === data.iB
-            const isActive = activeIndices.has(i)
-            if (!isActive || isA || isB) return null
-            return (
-              <circle
-                key={i}
-                cx={p.x} cy={p.y} r={5}
-                fill="white"
-                opacity={0.7}
-              />
-            )
-          })}
 
           {/* Casing blanco para contraste */}
           {pathD && (
