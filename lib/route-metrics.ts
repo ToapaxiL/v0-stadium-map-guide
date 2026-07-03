@@ -5,7 +5,11 @@
 //
 // DISTANCIA (exacta, nunca aproximada):
 //   - Entre secciones contiguas del anillo: 100 m por tramo.
-//   - Excepción: Palco Sur Occidental (P2) ↔ Plazoleta (P1): 50 m.
+//   - Excepciones de 50 m:
+//       · Palco Sur Occidental ↔ Plazoleta
+//       · Plazoleta ↔ Palco Norte Occidental
+//       · General Sur Alta ↔ General Sur Baja
+//       · General Norte Oriental ↔ General Norte Occidental
 //
 // TIEMPO (rango en minutos ENTEROS, según recorridos acumulados provistos):
 //   200 m: 3–5 min con público
@@ -46,12 +50,18 @@ function indicesForGate(g: number): number[] {
   return r
 }
 
+// Tramos contiguos de 50 m (todos los demás = 100 m). Pares de índices del anillo.
+// 8-9:  Palco Sur Occidental ↔ Plazoleta
+// 9-10: Plazoleta ↔ Palco Norte Occidental
+// 5-6:  General Sur Alta ↔ General Sur Baja
+// 12-0: General Norte Occidental ↔ General Norte Oriental (envuelve el anillo)
+const HALF_STEPS = new Set(["8-9", "9-10", "5-6", "0-12"])
+
 // Distancia (m) de un paso entre dos índices contiguos del anillo.
 function stepMeters(a: number, b: number): number {
   const lo = Math.min(a, b)
   const hi = Math.max(a, b)
-  // P2 (idx 8) ↔ Plazoleta (idx 9) = 50 m; todos los demás tramos = 100 m
-  if (lo === 8 && hi === 9) return 50
+  if (HALF_STEPS.has(`${lo}-${hi}`)) return 50
   return 100
 }
 
