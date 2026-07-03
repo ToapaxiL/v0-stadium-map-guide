@@ -2,6 +2,7 @@
 
 import { useLanguage } from "@/lib/language-context"
 import { Button } from "@/components/ui/button"
+import { CleanMap, type CleanMapMarker } from "@/components/clean-map"
 import { 
   Pill, 
   Bus, 
@@ -18,6 +19,7 @@ interface NearbyPlace {
   address: string
   mapsUrl: string
   tag: string | string[]
+  coords: [number, number] // [lat, lng] exactas del lugar elegido
 }
 
 interface Service {
@@ -26,11 +28,13 @@ interface Service {
   labelKey: string
   mapsEmbedUrl: string
   mapsUrl: string
+  color: string // color del pin de esta categoría
   nearbyPlaces: NearbyPlace[]
 }
 
 // Coordenadas del Estadio Rodrigo Paz Delgado
 const STADIUM_COORDS = "-0.1082127,-78.4964961"
+const STADIUM_LATLNG: [number, number] = [-0.1082127, -78.4964961]
 const STADIUM_ADDRESS = "Estadio+Rodrigo+Paz+Delgado,+Quito"
 
 const services: Service[] = [
@@ -40,24 +44,28 @@ const services: Service[] = [
     labelKey: "pharmacies",
     mapsEmbedUrl: "https://www.google.com/maps/embed?pb=!1m16!1m12!1m3!1d4333.524848525548!2d-78.49070723522495!3d-0.10614792207923071!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!2m1!1sFarmacias!5e1!3m2!1ses!2sec!4v1779035517907!5m2!1ses!2sec",
     mapsUrl: "https://www.google.com/maps/search/Farmacias+cerca+de+estadio+rodrigo+paz+delgado/@-0.1082127,-78.4964961,15z",
+    color: "#ef4444",
     nearbyPlaces: [
       {
         name: "Farmacias Económicas Quito La Delicia",
         address: "La Delicia, Quito",
         mapsUrl: "https://maps.app.goo.gl/1jah6tSGa6yk5ixA8",
-        tag: "Farmacia"
+        tag: "Farmacia",
+        coords: [-0.1088014, -78.4929594]
       },
       {
         name: "Farmacias Medicity Quito CC Condado",
         address: "C.C. Condado, Quito",
         mapsUrl: "https://maps.app.goo.gl/wayk96A24EYXg3QE8",
-        tag: "Farmacia"
+        tag: "Farmacia",
+        coords: [-0.1044386, -78.491379]
       },
       {
         name: "Fybeca El Condado",
         address: "C.C. El Condado, Quito",
         mapsUrl: "https://maps.app.goo.gl/TnuLcsrcuaL1o5C18",
-        tag: "Farmacia"
+        tag: "Farmacia",
+        coords: [-0.102808, -78.4898655]
       }
     ]
   },
@@ -67,18 +75,21 @@ const services: Service[] = [
     labelKey: "transport",
     mapsEmbedUrl: "https://www.google.com/maps/embed?pb=!1m16!1m12!1m3!1d10352.41569787341!2d-78.48412918988936!3d-0.10407415882322812!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!2m1!1sTerminal!5e1!3m2!1ses!2sec!4v1779036443824!5m2!1ses!2sec",
     mapsUrl: "https://maps.app.goo.gl/Y8eSJdqUhiNerhEY6",
+    color: "#3b82f6",
     nearbyPlaces: [
       {
         name: "Terminal Ofelia",
         address: "Parada Trole / Ecovía - La Ofelia",
         mapsUrl: "https://maps.app.goo.gl/i8E3syeaLkxFbwC9A",
-        tag: "Bus"
+        tag: "Bus",
+        coords: [-0.1102, -78.48827]
       },
       {
         name: "Estación Labrador",
         address: "Estación Labrador, Quito",
         mapsUrl: "https://maps.app.goo.gl/9LUNZthhxCmdatZc7",
-        tag: ["Bus", "Metro"]
+        tag: ["Bus", "Metro"],
+        coords: [-0.1555347, -78.4861323]
       },
     ]
   },
@@ -88,12 +99,14 @@ const services: Service[] = [
     labelKey: "hospitals",
     mapsEmbedUrl: "https://www.google.com/maps/embed?pb=!1m16!1m12!1m3!1d5198.099140728318!2d-78.49115317074912!3d-0.1091547475819753!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!2m1!1shospitales!5e1!3m2!1ses!2sec!4v1779036357214!5m2!1ses!2sec",
     mapsUrl: "https://maps.app.goo.gl/Mn94whLbsdbgyHL56",
+    color: "#22c55e",
     nearbyPlaces: [
       {
         name: "Hospital Provincial General Pablo Arturo Suárez",
         address: "Quito, Ecuador",
         mapsUrl: "https://maps.app.goo.gl/Mn94whLbsdbgyHL56",
-        tag: "Hospital"
+        tag: "Hospital",
+        coords: [-0.1272568, -78.4976501]
       }
     ]
   },
@@ -103,36 +116,42 @@ const services: Service[] = [
     labelKey: "atm",
     mapsEmbedUrl: "https://www.google.com/maps/embed?pb=!1m16!1m12!1m3!1d6608.850503096203!2d-78.49383557388533!3d-0.10664969192369922!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!2m1!1sCajeros!5e1!3m2!1ses!2sec!4v1779036949549!5m2!1ses!2sec",
     mapsUrl: "https://maps.app.goo.gl/LeT6jm1GNZQgeVQg7",
+    color: "#10b981",
     nearbyPlaces: [
       {
         name: "Cajero JEP",
         address: "Quito, Ecuador",
         mapsUrl: "https://maps.app.goo.gl/LeT6jm1GNZQgeVQg7",
-        tag: "Cajero"
+        tag: "Cajero",
+        coords: [-0.1074226, -78.4908912]
       },
       {
         name: "Cajero Banco Pichincha",
         address: "Quito, Ecuador",
         mapsUrl: "https://maps.app.goo.gl/PfWwpJ6tEjLYFhcVA",
-        tag: "Cajero"
+        tag: "Cajero",
+        coords: [-0.1065846, -78.4908626]
       },
       {
         name: "Cajero Banco Pacífico",
         address: "Quito, Ecuador",
         mapsUrl: "https://maps.app.goo.gl/wv39xEcrejb83JyW9",
-        tag: "Cajero"
+        tag: "Cajero",
+        coords: [-0.1031285, -78.4901234]
       },
       {
         name: "Cajero Produbanco",
         address: "Quito, Ecuador",
         mapsUrl: "https://maps.app.goo.gl/9QBsJV8x7B1kwq1q8",
-        tag: "Cajero"
+        tag: "Cajero",
+        coords: [-0.102864, -78.4897804]
       },
       {
         name: "Cajero Banco Guayaquil",
         address: "Quito, Ecuador",
         mapsUrl: "https://maps.app.goo.gl/Wo8Fa9vApKtDcc3u6",
-        tag: "Cajero"
+        tag: "Cajero",
+        coords: [-0.1026074, -78.4901018]
       }
     ]
   },
@@ -238,21 +257,27 @@ export function ServiceMap({ service, onShowStadiumMap, hidePlaces = false }: Se
     return colors[serviceId] || "text-primary"
   }
 
+  // Solo los puntos elegidos + el estadio como referencia
+  const mapMarkers: CleanMapMarker[] = [
+    {
+      name: "Estadio Rodrigo Paz Delgado",
+      coords: STADIUM_LATLNG,
+      color: "#1d3557",
+      isStadium: true,
+    },
+    ...service.nearbyPlaces.map((p) => ({
+      name: p.name,
+      coords: p.coords,
+      color: service.color,
+    })),
+  ]
+
   return (
     <div className="space-y-4">
       <div className="rounded-xl overflow-hidden border border-border bg-card">
         <div className="relative aspect-[16/10] w-full">
-          <iframe
-            src={service.mapsEmbedUrl}
-            width="100%"
-            height="100%"
-            style={{ border: 0 }}
-            allowFullScreen
-            loading="lazy"
-            referrerPolicy="no-referrer-when-downgrade"
-            className="absolute inset-0"
-          />
-          <div className="absolute top-3 right-3 flex gap-2">
+          <CleanMap markers={mapMarkers} className="absolute inset-0 h-full w-full" />
+          <div className="absolute top-3 right-3 z-[1000] flex gap-2">
             <Button
               size="sm"
               className="bg-red-600 hover:bg-red-700 text-white shadow-lg"
@@ -262,7 +287,7 @@ export function ServiceMap({ service, onShowStadiumMap, hidePlaces = false }: Se
               Google Maps
             </Button>
           </div>
-          <div className="absolute bottom-3 left-3">
+          <div className="absolute bottom-3 left-3 z-[1000]">
             <Button
               size="sm"
               className="bg-red-600 hover:bg-red-700 text-white shadow-lg"
