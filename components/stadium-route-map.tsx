@@ -1,7 +1,6 @@
 "use client"
 
 import { useMemo, useEffect, useRef } from "react"
-import { Clock, MapPin } from "lucide-react"
 import type { RouteResult } from "@/lib/navigation"
 import { useLanguage } from "@/lib/language-context"
 
@@ -28,34 +27,6 @@ const PERIMETER: { gate: number; sub?: string; label?: string; x: number; y: num
 ]
 
 const N = PERIMETER.length // 13
-
-// ─── Escala para estimar distancia/tiempo ───────────────────────────────────
-// El anillo completo (13 tramos) equivale aprox. a 800 m reales alrededor del
-// estadio (4 tramos de referencia × 200 m). Escalamos la longitud dibujada de
-// la ruta (en unidades del SVG) a metros usando esta relación.
-const LOOP_UNITS = (() => {
-  let s = 0
-  for (let i = 0; i < N; i++) {
-    const a = PERIMETER[i]
-    const b = PERIMETER[(i + 1) % N]
-    s += Math.hypot(b.x - a.x, b.y - a.y)
-  }
-  return s
-})()
-const REAL_LOOP_M = 800 // 4 tramos × 200 m
-
-// Estima distancia (m) y tiempo (min) a partir de la longitud de la ruta.
-// Tiempo: 3 min/200 m en condiciones normales; 5 min/200 m con aglomeración
-// (ingreso/salida). Devuelve rangos redondeados para mostrar en la simbología.
-function estimateMetrics(lenUnits: number) {
-  const meters = LOOP_UNITS > 0 ? (lenUnits / LOOP_UNITS) * REAL_LOOP_M : 0
-  const distLow = Math.floor(meters / 100) * 100
-  let distHigh = Math.ceil(meters / 100) * 100
-  if (distHigh <= distLow) distHigh = distLow + 100
-  const timeLow = Math.max(1, Math.round((meters / 200) * 3))
-  const timeHigh = Math.max(timeLow + 1, Math.round((meters / 200) * 5))
-  return { meters, distLow, distHigh, timeLow, timeHigh }
-}
 
 // Sección → índice en el perímetro
 function sectionToIndex(section: string): number {
@@ -187,9 +158,8 @@ export function StadiumRouteMap({ result }: Props) {
     const len   = pathLength(pts)
 
     const activeIndices = new Set(routeIndices)
-    const metrics = estimateMetrics(len)
 
-    return { iA, iB, posA, posB, pathD, len, activeIndices, metrics }
+    return { iA, iB, posA, posB, pathD, len, activeIndices }
   }, [result])
 
   // Animación draw-on
@@ -213,11 +183,7 @@ export function StadiumRouteMap({ result }: Props) {
     return () => cancelAnimationFrame(raf1)
   }, [data])
 
-  const { posA, posB, pathD, len, activeIndices, metrics } = data
-
-  const distLabel =
-    metrics.distLow === 0 ? `< ${metrics.distHigh} m` : `${metrics.distLow}–${metrics.distHigh} m`
-  const timeLabel = `${metrics.timeLow}–${metrics.timeHigh} min`
+  const { posA, posB, pathD, len, activeIndices } = data
 
   return (
     <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
@@ -234,26 +200,6 @@ export function StadiumRouteMap({ result }: Props) {
           </span>
         </div>
       </div>
-
-      {pathD && (
-        <div className="px-5 py-2.5 border-b border-border flex flex-wrap items-center gap-2">
-          <span className="text-xs font-semibold text-muted-foreground mr-1">{t("yourRoute")}</span>
-          <span
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary text-primary-foreground text-xs font-semibold"
-            aria-label={`${t("estTime")}: ${timeLabel}`}
-          >
-            <Clock className="w-3.5 h-3.5" aria-hidden="true" />
-            {timeLabel}
-          </span>
-          <span
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary text-primary-foreground text-xs font-semibold"
-            aria-label={`${t("estDistance")}: ${distLabel}`}
-          >
-            <MapPin className="w-3.5 h-3.5" aria-hidden="true" />
-            {distLabel}
-          </span>
-        </div>
-      )}
 
       <div className="relative w-full">
         <img

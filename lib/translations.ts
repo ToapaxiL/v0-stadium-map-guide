@@ -73,8 +73,6 @@ export const translations = {
     selectBothLocations: "Selecciona origen y destino para ver la ruta",
     gate: "Puerta",
     routeMap: "Mapa de ruta",
-    estTime: "Tiempo estimado",
-    estDistance: "Distancia aproximada",
     access: "Acceso",
     includedServices: "Servicios incluidos",
 
@@ -216,8 +214,6 @@ export const translations = {
     selectBothLocations: "Select origin and destination to see the route",
     gate: "Gate",
     routeMap: "Route map",
-    estTime: "Estimated time",
-    estDistance: "Approximate distance",
     access: "Access",
     includedServices: "Included services",
 
