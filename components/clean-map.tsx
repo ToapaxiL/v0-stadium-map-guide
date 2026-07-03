@@ -40,11 +40,10 @@ export function CleanMap({ markers, className }: CleanMapProps) {
     let map: LeafletMap | null = null
     let resizeObserver: ResizeObserver | null = null
 
-    const latlngs = markers.map((m) => m.coords)
-
     // Encuadra el mapa sobre los puntos elegidos.
-    function fit(L: typeof import("leaflet")) {
-      if (!map) return
+    function fit(L: typeof import("leaflet"), latlngs: [number, number][]) {
+      const el = containerRef.current
+      if (!map || !el || el.clientHeight < 50 || el.clientWidth < 50) return
       map.invalidateSize({ animate: false })
       if (latlngs.length === 1) {
         map.setView(latlngs[0], 16, { animate: false })
@@ -55,22 +54,16 @@ export function CleanMap({ markers, className }: CleanMapProps) {
       }
     }
 
-    // Crea el mapa solo cuando el contenedor ya tiene su tamaño real, para que
-    // Leaflet calcule bien el origen de píxeles (evita marcadores desplazados).
-    function build(L: typeof import("leaflet")) {
-      const el = containerRef.current
-      if (cancelled || !el || map) return
+    async function init() {
+      const L = (await import("leaflet")).default
+      if (cancelled || !containerRef.current) return
 
-      map = L.map(el, {
+      map = L.map(containerRef.current, {
         scrollWheelZoom: false,
         zoomControl: true,
         attributionControl: true,
       })
       mapRef.current = map
-
-      // Vista inicial ANTES de añadir capas para que los marcadores se
-      // posicionen con un origen de píxeles válido desde el inicio.
-      map.setView([-0.1082127, -78.4964961], 15, { animate: false })
 
       const tileUrl = isDark
         ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
@@ -82,6 +75,7 @@ export function CleanMap({ markers, className }: CleanMapProps) {
         maxZoom: 19,
       }).addTo(map)
 
+      const latlngs: [number, number][] = []
       markers.forEach((m) => {
         const icon = L.divIcon({
           className: "clean-map-pin",
@@ -93,29 +87,17 @@ export function CleanMap({ markers, className }: CleanMapProps) {
         L.marker(m.coords, { icon, title: m.name })
           .addTo(map!)
           .bindPopup(`<strong>${m.name}</strong>`)
+        latlngs.push(m.coords)
       })
 
-      fit(L)
-      ;(window as any).__cleanMap = map
-      console.log("[v0] map built", { center: map.getCenter(), zoom: map.getZoom(), size: map.getSize() })
-    }
+      fit(L, latlngs)
 
-    async function init() {
-      const L = (await import("leaflet")).default
-      if (cancelled || !containerRef.current) return
-      const el = containerRef.current
-
-      // Observa el contenedor: construye el mapa en cuanto tenga tamaño válido
-      // y lo reencuadra en cambios posteriores (p. ej. al mostrarse en un tab).
-      resizeObserver = new ResizeObserver(() => {
-        if (el.clientHeight < 50 || el.clientWidth < 50) return
-        if (!map) build(L)
-        else fit(L)
-      })
-      resizeObserver.observe(el)
-
-      // Si el contenedor ya tiene tamaño, construye de inmediato.
-      if (el.clientHeight >= 50 && el.clientWidth >= 50) build(L)
+      // Reencaja cuando el contenedor obtiene/actualiza su tamaño real,
+      // evitando el mosaico parcial de tiles al montar dentro de tabs.
+      resizeObserver = new ResizeObserver(() => fit(L, latlngs))
+      if (containerRef.current) resizeObserver.observe(containerRef.current)
+      requestAnimationFrame(() => fit(L, latlngs))
+      setTimeout(() => fit(L, latlngs), 250)
     }
 
     init()
