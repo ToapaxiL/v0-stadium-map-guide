@@ -240,9 +240,10 @@ const PT = {
   p3:            { x: 599.981, y: 348.188 }, // Tribuna Sur Occidental (P3)
   p23Exterior:   { x: 666.981, y: 383.477 }, // salida exterior junto a Puerta 2-3
   calleAbajo:    { x: 786.981, y: 383.476 }, // Calle Cacica Quilago, esquina inferior
-  calleCorner4:  { x: 786.981, y: 229.997 }, // giro a la altura de la Puerta 4 LOCAL
+  calleArriba:   { x: 786.709, y: 193.228 }, // Calle Cacica Quilago, esquina superior
   p4Local:       { x: 746.709, y: 229.997 }, // ingreso Puerta 4 LOCAL
-  p4AltaSeat:    { x: 670.291, y: 289.996 }, // General Sur Alta (bloque inferior, P4)
+  p4Junction:    { x: 747.12,  y: 289.997 }, // giro interior a la altura de General Sur Alta
+  p4AltaSeat:    { x: 670.291, y: 289.996 }, // General Sur Alta (P4)
 }
 
 // Longitud de una polilínea (unidades SVG).
@@ -267,7 +268,7 @@ const SPECIAL_ROUTES: Record<string, SpecialRouteBuilder> = {
   // ── RUTA 1: P3 → P4 (General Sur Alta) por el exterior ──
   "tribuna-sur-occidental|general-sur-alta": (lang) => {
     const path = [
-      PT.p3, PT.p23Exterior, PT.calleAbajo, PT.calleCorner4, PT.p4Local, PT.p4AltaSeat,
+      PT.p3, PT.p23Exterior, PT.calleAbajo, PT.calleArriba, PT.p4Local, PT.p4Junction, PT.p4AltaSeat,
     ]
     const steps: RouteStep[] =
       lang === "es"
@@ -276,7 +277,6 @@ const SPECIAL_ROUTES: Record<string, SpecialRouteBuilder> = {
             { type: "external", instruction: "Sal al exterior", icon: "exit" },
             { type: "external", instruction: "Dirígete a la Puerta 2-3", icon: "walk" },
             { type: "external", instruction: "Camina por Calle Cacica Quilago", icon: "walk" },
-            { type: "external", instruction: "Continúa siguiendo la línea roja", icon: "walk" },
             { type: "external", instruction: "Ingresa por la Puerta 4 LOCAL", icon: "enter" },
             { type: "arrive",   instruction: "General Sur Alta", detail: "Puerta 4", icon: "flag" },
           ]
@@ -285,7 +285,6 @@ const SPECIAL_ROUTES: Record<string, SpecialRouteBuilder> = {
             { type: "external", instruction: "Exit to the exterior", icon: "exit" },
             { type: "external", instruction: "Head to Gate 2-3", icon: "walk" },
             { type: "external", instruction: "Walk along Calle Cacica Quilago", icon: "walk" },
-            { type: "external", instruction: "Continue following the red line", icon: "walk" },
             { type: "external", instruction: "Enter through Gate 4 LOCAL", icon: "enter" },
             { type: "arrive",   instruction: "South High General", detail: "Gate 4", icon: "flag" },
           ]
@@ -302,7 +301,7 @@ const SPECIAL_ROUTES: Record<string, SpecialRouteBuilder> = {
   // ── RUTA 1 (inversa): P4 (General Sur Alta) → P3 ──
   "general-sur-alta|tribuna-sur-occidental": (lang) => {
     const path = [
-      PT.p4AltaSeat, PT.p4Local, PT.calleCorner4, PT.calleAbajo, PT.p23Exterior, PT.p3,
+      PT.p4AltaSeat, PT.p4Junction, PT.p4Local, PT.calleArriba, PT.calleAbajo, PT.p23Exterior, PT.p3,
     ]
     const steps: RouteStep[] =
       lang === "es"
@@ -310,7 +309,6 @@ const SPECIAL_ROUTES: Record<string, SpecialRouteBuilder> = {
             { type: "start",    instruction: "General Sur Alta", detail: "Puerta 4", icon: "pin" },
             { type: "external", instruction: "Sal al exterior por la Puerta 4 LOCAL", icon: "exit" },
             { type: "external", instruction: "Camina por Calle Cacica Quilago", icon: "walk" },
-            { type: "external", instruction: "Continúa siguiendo la línea roja", icon: "walk" },
             { type: "external", instruction: "Dirígete a la Puerta 2-3", icon: "walk" },
             { type: "external", instruction: "Ingresa por la Puerta 3", icon: "enter" },
             { type: "arrive",   instruction: "Tribuna Sur Occidental", detail: "Puerta 3", icon: "flag" },
@@ -319,7 +317,6 @@ const SPECIAL_ROUTES: Record<string, SpecialRouteBuilder> = {
             { type: "start",    instruction: "South High General", detail: "Gate 4", icon: "pin" },
             { type: "external", instruction: "Exit to the exterior through Gate 4 LOCAL", icon: "exit" },
             { type: "external", instruction: "Walk along Calle Cacica Quilago", icon: "walk" },
-            { type: "external", instruction: "Continue following the red line", icon: "walk" },
             { type: "external", instruction: "Head to Gate 2-3", icon: "walk" },
             { type: "external", instruction: "Enter through Gate 3", icon: "enter" },
             { type: "arrive",   instruction: "South West Stand", detail: "Gate 3", icon: "flag" },
