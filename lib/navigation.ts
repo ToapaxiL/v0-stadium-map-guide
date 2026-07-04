@@ -676,7 +676,80 @@ function makeSurInternalRoute(from: SurNode, to: SurNode): SpecialRouteBuilder {
   }
 }
 
+// ============================================================
+// General Sur Alta ↔ Norte Occidental {P10, P11} por La Esperanza
+// ------------------------------------------------------------
+// A petición: desde General Sur Alta hacia Tribuna Norte Occidental (P10) y
+// Palco Norte Occidental (P11) NO se rodea por arriba. Se sale por la Puerta 4
+// LOCAL, se baja por la Calle Cacica Quilago, se pasa por la Puerta 2-3,
+// continuando por la calle y pasando la Puerta 1, se sigue por La Esperanza y se
+// entra por la Puerta 10-11. Reutiliza el tramo de La Esperanza del bucle oeste.
+// ============================================================
+const WEST_OCC_NAMES: Record<number, { es: string; en: string; gate: string }> = {
+  10: { es: "Tribuna Norte Occidental", en: "North West Stand", gate: "10" },
+  11: { es: "Palco Norte Occidental",   en: "North West Box",   gate: "11" },
+}
+// Esquina de la calle inferior, alineada sobre la Puerta 1 (para el giro limpio
+// entre la Puerta 2-3 y la bajada de la Puerta 1 hacia La Esperanza).
+const P1_STREET_CORNER: Pt = { x: 531.822, y: 383.477 }
+
+function makeSurAltaWestRoute(north: 10 | 11, dir: "out" | "in"): SpecialRouteBuilder {
+  return (lang) => {
+    // Exterior desde General Sur Alta hasta la Puerta 2-3 (reverso de P4_ENTER).
+    const exitToP23 = [...P4_ENTER].reverse() // p4AltaSeat → … → p23Exterior
+    // Tramo La Esperanza + entrada Norte Occidental (reverso del bucle oeste):
+    // p1TurnUp → laEspP1 → … → Puerta 10-11 → asiento.
+    const westArrival = [...[...northTail(north), ...westLoopMid(north)]].reverse()
+    const forward = [...exitToP23, P1_STREET_CORNER, ...westArrival]
+    const path = dir === "out" ? forward : [...forward].reverse()
+
+    const nN = WEST_OCC_NAMES[north]
+    const es = lang === "es"
+    const gw = es ? "Puerta" : "Gate"
+    const steps: RouteStep[] = []
+
+    if (dir === "out") {
+      steps.push({ type: "start", instruction: es ? "General Sur Alta" : "South High General", detail: `${gw} 4`, icon: "pin" })
+      steps.push({ type: "external", instruction: es ? "Sal por la Puerta 4 Local" : "Exit through Gate 4 Local", icon: "exit" })
+      steps.push({ type: "external", instruction: es ? "Baja por la Calle Cacica Quilago" : "Go down Calle Cacica Quilago", icon: "walk" })
+      steps.push({ type: "external", instruction: es ? "Pasa por la Puerta 2-3" : "Pass by Gate 2-3", icon: "walk" })
+      steps.push({ type: "external", instruction: es ? "Continúa por la calle pasando la Puerta 1" : "Continue along the street passing Gate 1", icon: "walk" })
+      steps.push({ type: "external", instruction: es ? "Sigue por La Esperanza según la ruta señalizada" : "Continue along La Esperanza following the marked route", icon: "walk" })
+      steps.push({ type: "external", instruction: es ? "Ingresa por la Puerta 10-11" : "Enter through Gate 10-11", icon: "enter" })
+      if (north === 11)
+        steps.push({ type: "internal", instruction: es ? "Camina hasta la Puerta 11" : "Walk to Gate 11", icon: "walk" })
+      steps.push({ type: "arrive", instruction: es ? nN.es : nN.en, detail: `${gw} ${nN.gate}`, icon: "flag" })
+    } else {
+      steps.push({ type: "start", instruction: es ? nN.es : nN.en, detail: `${gw} ${nN.gate}`, icon: "pin" })
+      if (north === 11)
+        steps.push({ type: "internal", instruction: es ? "Camina hasta la Puerta 10-11" : "Walk to Gate 10-11", icon: "walk" })
+      steps.push({ type: "external", instruction: es ? "Sal por la Puerta 10-11" : "Exit through Gate 10-11", icon: "exit" })
+      steps.push({ type: "external", instruction: es ? "Sigue por La Esperanza según la ruta señalizada" : "Continue along La Esperanza following the marked route", icon: "walk" })
+      steps.push({ type: "external", instruction: es ? "Continúa por la calle pasando la Puerta 1" : "Continue along the street passing Gate 1", icon: "walk" })
+      steps.push({ type: "external", instruction: es ? "Pasa por la Puerta 2-3" : "Pass by Gate 2-3", icon: "walk" })
+      steps.push({ type: "external", instruction: es ? "Sube por la Calle Cacica Quilago" : "Go up Calle Cacica Quilago", icon: "walk" })
+      steps.push({ type: "external", instruction: es ? "Ingresa por la Puerta 4 Local a General Sur Alta" : "Enter through Gate 4 Local into South High General", icon: "enter" })
+      steps.push({ type: "arrive", instruction: es ? "General Sur Alta" : "South High General", detail: `${gw} 4`, icon: "flag" })
+    }
+
+    return {
+      steps,
+      totalSteps: steps.length,
+      usesExterior: true,
+      gateTrace: dir === "out" ? [4, 3, 1, north] : [north, 1, 3, 4],
+      specialPath: path,
+      specialMeters: metersOf(path),
+    }
+  }
+}
+
 const SPECIAL_ROUTES: Record<string, SpecialRouteBuilder> = {
+  // ── General Sur Alta ↔ Norte Occidental {P10, P11} por La Esperanza ──
+  "general-sur-alta|tribuna-norte-occidental": makeSurAltaWestRoute(10, "out"),
+  "tribuna-norte-occidental|general-sur-alta": makeSurAltaWestRoute(10, "in"),
+  "general-sur-alta|palco-norte-occidental":   makeSurAltaWestRoute(11, "out"),
+  "palco-norte-occidental|general-sur-alta":   makeSurAltaWestRoute(11, "in"),
+
   // ── Tramo interno General Sur ↔ Sur Oriental (Alta → Baja → P5 → P6) ──
   "general-sur-alta|general-sur-baja":         makeSurInternalRoute("alta", "baja"),
   "general-sur-baja|general-sur-alta":         makeSurInternalRoute("baja", "alta"),
