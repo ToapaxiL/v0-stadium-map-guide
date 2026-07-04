@@ -519,7 +519,70 @@ function makeEastCorridorRoute(t1: number, east: number, dir: "out" | "in"): Spe
   }
 }
 
+// ============================================================
+// Tramo interno General Sur ↔ Sur Oriental (Alta → Baja → P5 → P6)
+// ------------------------------------------------------------
+// Dentro del anillo sur, el orden físico es: General Sur Alta → General Sur
+// Baja → Tribuna Sur Oriental (P5) → Palco Sur Oriental (P6). A la Baja NUNCA se
+// entra directo desde la calle: solo se llega internamente. Estas rutas son
+// 100% internas (no salen a Cacica Quilago).
+// ============================================================
+const SUR_INTERNAL_ORDER = ["alta", "baja", 5, 6] as const
+type SurNode = (typeof SUR_INTERNAL_ORDER)[number]
+const SUR_INTERNAL_PT: Record<string, Pt> = {
+  alta: PT.p4AltaSeat,
+  baja: PT.p4BajaSeat,
+  "5": PT.p5Seat,
+  "6": PT.p6Seat,
+}
+const SUR_INTERNAL_NAMES: Record<string, { es: string; en: string; gate: string }> = {
+  alta: { es: "General Sur Alta", en: "South High General", gate: "4" },
+  baja: { es: "General Sur Baja", en: "South Low General", gate: "4" },
+  "5":  { es: "Tribuna Sur Oriental", en: "South East Stand", gate: "5" },
+  "6":  { es: "Palco Sur Oriental",   en: "South East Box",   gate: "6" },
+}
+
+function makeSurInternalRoute(from: SurNode, to: SurNode): SpecialRouteBuilder {
+  return (lang) => {
+    const iFrom = SUR_INTERNAL_ORDER.indexOf(from)
+    const iTo = SUR_INTERNAL_ORDER.indexOf(to)
+    const asc = iFrom < iTo
+    const slice = SUR_INTERNAL_ORDER.slice(Math.min(iFrom, iTo), Math.max(iFrom, iTo) + 1)
+    const ordered = asc ? slice : [...slice].reverse()
+    const path = ordered.map((n) => SUR_INTERNAL_PT[String(n)])
+    const nFrom = SUR_INTERNAL_NAMES[String(from)]
+    const nTo = SUR_INTERNAL_NAMES[String(to)]
+    const es = lang === "es"
+    const gw = es ? "Puerta" : "Gate"
+    const steps: RouteStep[] = [
+      { type: "start", instruction: es ? nFrom.es : nFrom.en, detail: `${gw} ${nFrom.gate}`, icon: "pin" },
+      { type: "internal", instruction: es ? `Camina internamente hasta ${nTo.es}` : `Walk internally to ${nTo.en}`, icon: "walk" },
+      { type: "arrive", instruction: es ? nTo.es : nTo.en, detail: `${gw} ${nTo.gate}`, icon: "flag" },
+    ]
+    return {
+      steps,
+      totalSteps: steps.length,
+      usesExterior: false,
+      gateTrace: ordered.map((n) => (n === "alta" || n === "baja" ? 4 : n)),
+      specialPath: path,
+      specialMeters: metersOf(path),
+    }
+  }
+}
+
 const SPECIAL_ROUTES: Record<string, SpecialRouteBuilder> = {
+  // ── Tramo interno General Sur ↔ Sur Oriental (Alta → Baja → P5 → P6) ──
+  "general-sur-alta|general-sur-baja":         makeSurInternalRoute("alta", "baja"),
+  "general-sur-baja|general-sur-alta":         makeSurInternalRoute("baja", "alta"),
+  "general-sur-alta|tribuna-sur-oriental":     makeSurInternalRoute("alta", 5),
+  "tribuna-sur-oriental|general-sur-alta":     makeSurInternalRoute(5, "alta"),
+  "general-sur-alta|palco-sur-oriental":       makeSurInternalRoute("alta", 6),
+  "palco-sur-oriental|general-sur-alta":       makeSurInternalRoute(6, "alta"),
+  "general-sur-baja|tribuna-sur-oriental":     makeSurInternalRoute("baja", 5),
+  "tribuna-sur-oriental|general-sur-baja":     makeSurInternalRoute(5, "baja"),
+  "general-sur-baja|palco-sur-oriental":       makeSurInternalRoute("baja", 6),
+  "palco-sur-oriental|general-sur-baja":       makeSurInternalRoute(6, "baja"),
+
   // ── Corredor Sur: {Plazoleta(P1), P2, P3} ↔ General Sur (P4) por Cacica Quilago ──
   "tribuna-sur-occidental|general-sur-alta": makeSouthCorridorRoute(3, "alta", "out"),
   "general-sur-alta|tribuna-sur-occidental": makeSouthCorridorRoute(3, "alta", "in"),
