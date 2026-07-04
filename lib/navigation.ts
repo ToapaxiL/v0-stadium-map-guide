@@ -267,7 +267,7 @@ const SPECIAL_ROUTES: Record<string, SpecialRouteBuilder> = {
   // ── RUTA 1: P3 → P4 (General Sur Alta) por el exterior ──
   "tribuna-sur-occidental|general-sur-alta": (lang) => {
     const path = [
-      PT.p3, PT.p23Exterior, PT.calleAbajo, PT.calleCorner4, PT.p4LocalAlta, PT.p4Alta,
+      PT.p3, PT.p23Exterior, PT.calleAbajo, PT.calleCorner4, PT.p4Local, PT.p4AltaSeat,
     ]
     const steps: RouteStep[] =
       lang === "es"
@@ -302,7 +302,7 @@ const SPECIAL_ROUTES: Record<string, SpecialRouteBuilder> = {
   // ── RUTA 1 (inversa): P4 (General Sur Alta) → P3 ──
   "general-sur-alta|tribuna-sur-occidental": (lang) => {
     const path = [
-      PT.p4Alta, PT.p4LocalAlta, PT.calleCorner4, PT.calleAbajo, PT.p23Exterior, PT.p3,
+      PT.p4AltaSeat, PT.p4Local, PT.calleCorner4, PT.calleAbajo, PT.p23Exterior, PT.p3,
     ]
     const steps: RouteStep[] =
       lang === "es"
