@@ -57,16 +57,19 @@ const SECTION_GATES: Record<string, number> = {
 }
 
 // Tramos internos conectados
-// TRAMO_3 incluye P2 como nodo compartido con TRAMO_1
-// La Plazoleta (gate=1) es el nodo intermediario entre P11 y P2
-const TRAMO_1 = [2, 3]               // Occidental Sur
+// ANULADO el paso interno P11 ✖ Plazoleta(P1): la Plazoleta ya NO conecta con
+// el Palco Norte Occidental (P11) por dentro. Ahora la Plazoleta pertenece al
+// bloque Sur Occidental (P3 ↔ P2 ↔ Plazoleta) y el Norte Occidental (P11 ↔ P10)
+// queda como una isla que se enlaza con el resto SOLO por el exterior:
+//   · P10 ↔ P9  por H. Vans Risn (Puerta 9W / Puerta 10-11)
+//   · P10 ↔ Plazoleta(P1) por La Esperanza (RUTA 3)
+const TRAMO_1 = [3, 2, 1]           // Sur Occidental: P3 ↔ P2 ↔ Plazoleta(P1)
 const TRAMO_2 = [5, 6, 7, 8, 9]     // Oriental completo
-const TRAMO_3 = [2, 1, 11, 10]      // Occidental Norte: P2 ↔ Plazoleta(P1) ↔ P11 ↔ P10
+const TRAMO_3 = [11, 10]            // Norte Occidental: P11 ↔ P10 (isla)
 
 function inTramo1(g: number) { return TRAMO_1.includes(g) }
 function inTramo2(g: number) { return TRAMO_2.includes(g) }
 function inTramo3(g: number) { return TRAMO_3.includes(g) }
-// P2 está en ambos TRAMO_1 y TRAMO_3 (es el nodo de unión)
 
 const SECTION_NAMES: Record<string, { es: string; en: string }> = {
   "palco-sur-occidental":     { es: "Palco Sur Occidental",     en: "South West Box" },
@@ -252,6 +255,13 @@ const PT = {
   p1011Exterior: { x: 226.996, y: 371.054 }, // Puerta 10-11 (sobre la calle)
   p1011Corner:   { x: 275.995, y: 371.052 }, // giro de la calle hacia la Puerta 10
   p10Seat:       { x: 345.981, y: 348.188 }, // Tribuna Norte Occidental (P10)
+
+  // ── RUTA 3: bajada por H. Vans Risn y La Esperanza hacia la Plazoleta (P1) ──
+  p1011Down:     { x: 226.996, y: 397.189 }, // bajada por H. Vans Risn
+  laEspNWJog:    { x: 212.252, y: 397.188 }, // quiebre hacia el borde occidental
+  laEspNWCorner: { x: 212.253, y: 467.546 }, // esquina inferior (inicio La Esperanza)
+  laEspP1:       { x: 531.823, y: 486.546 }, // La Esperanza a la altura de la Puerta 1
+  plazoletaP1:   { x: 531.822, y: 418.299 }, // Plazoleta (Puerta 1)
 }
 
 // Longitud de una polilínea (unidades SVG).
@@ -406,6 +416,76 @@ const SPECIAL_ROUTES: Record<string, SpecialRouteBuilder> = {
       specialMeters: metersOf(path),
     }
   },
+
+  // ── RUTA 3: Tribuna Norte Occidental (P10) → Plazoleta (P1) ──
+  //    Salida por Puerta 10-11, bajada por H. Vans Risn, giro a la derecha en
+  //    la Puerta 1 y continuación por La Esperanza hasta la Plazoleta.
+  "tribuna-norte-occidental|plazoleta": (lang) => {
+    const path = [
+      PT.p10Seat, PT.p1011Corner, PT.p1011Exterior, PT.p1011Down,
+      PT.laEspNWJog, PT.laEspNWCorner, PT.laEspP1, PT.plazoletaP1,
+    ]
+    const steps: RouteStep[] =
+      lang === "es"
+        ? [
+            { type: "start",    instruction: "Tribuna Norte Occidental", detail: "Puerta 10", icon: "pin" },
+            { type: "external", instruction: "Sal por la Puerta 10-11", icon: "exit" },
+            { type: "external", instruction: "Camina por H. Vans Risn siguiendo la ruta señalizada", icon: "walk" },
+            { type: "external", instruction: "Gira a la derecha hacia la Puerta 1", icon: "walk" },
+            { type: "external", instruction: "Continúa por La Esperanza siguiendo la ruta señalizada", icon: "walk" },
+            { type: "arrive",   instruction: "Plazoleta", detail: "Puerta 1", icon: "flag" },
+          ]
+        : [
+            { type: "start",    instruction: "North West Stand", detail: "Gate 10", icon: "pin" },
+            { type: "external", instruction: "Exit through Gate 10-11", icon: "exit" },
+            { type: "external", instruction: "Walk along H. Vans Risn following the marked route", icon: "walk" },
+            { type: "external", instruction: "Turn right toward Gate 1", icon: "walk" },
+            { type: "external", instruction: "Continue along La Esperanza following the marked route", icon: "walk" },
+            { type: "arrive",   instruction: "Plaza", detail: "Gate 1", icon: "flag" },
+          ]
+    return {
+      steps,
+      totalSteps: steps.length,
+      usesExterior: true,
+      gateTrace: [10, 1],
+      specialPath: path,
+      specialMeters: metersOf(path),
+    }
+  },
+
+  // ── RUTA 3 (inversa): Plazoleta (P1) → Tribuna Norte Occidental (P10) ──
+  "plazoleta|tribuna-norte-occidental": (lang) => {
+    const path = [
+      PT.plazoletaP1, PT.laEspP1, PT.laEspNWCorner, PT.laEspNWJog,
+      PT.p1011Down, PT.p1011Exterior, PT.p1011Corner, PT.p10Seat,
+    ]
+    const steps: RouteStep[] =
+      lang === "es"
+        ? [
+            { type: "start",    instruction: "Plazoleta", detail: "Puerta 1", icon: "pin" },
+            { type: "external", instruction: "Sal por la Puerta 1", icon: "exit" },
+            { type: "external", instruction: "Camina por La Esperanza siguiendo la ruta señalizada", icon: "walk" },
+            { type: "external", instruction: "Gira a la izquierda hacia H. Vans Risn", icon: "walk" },
+            { type: "external", instruction: "Ingresa por la Puerta 10-11", icon: "enter" },
+            { type: "arrive",   instruction: "Tribuna Norte Occidental", detail: "Puerta 10", icon: "flag" },
+          ]
+        : [
+            { type: "start",    instruction: "Plaza", detail: "Gate 1", icon: "pin" },
+            { type: "external", instruction: "Exit through Gate 1", icon: "exit" },
+            { type: "external", instruction: "Walk along La Esperanza following the marked route", icon: "walk" },
+            { type: "external", instruction: "Turn left toward H. Vans Risn", icon: "walk" },
+            { type: "external", instruction: "Enter through Gate 10-11", icon: "enter" },
+            { type: "arrive",   instruction: "North West Stand", detail: "Gate 10", icon: "flag" },
+          ]
+    return {
+      steps,
+      totalSteps: steps.length,
+      usesExterior: true,
+      gateTrace: [1, 10],
+      specialPath: path,
+      specialMeters: metersOf(path),
+    }
+  },
 }
 
 // ============================================================
@@ -517,6 +597,16 @@ function resolveRoute(from: number, to: number, lang: "es" | "en" = "es"): Resol
     }
   }
 
+  // ── Conexión Sur Occidental (Plazoleta P1) ↔ Norte Occidental (P10) ──────
+  // Anulado el paso interno P11 ✖ Plazoleta: el único enlace es exterior por
+  // La Esperanza + H. Vans Risn (RUTA 3).
+  const plazoletaToWest = () => {
+    steps.push(...ext(1, ["La Esperanza", "H. Vans Risn"], 10, { entryLabel: "10-11" }))
+  }
+  const westToPlazoleta = () => {
+    steps.push(...ext(10, ["H. Vans Risn", "La Esperanza"], 1, { exitLabel: "10-11" }))
+  }
+
   // ── Mismo tramo directo ──────────────────────────────────
 
   if (inTramo1(from) && inTramo1(to)) {
@@ -534,105 +624,33 @@ function resolveRoute(from: number, to: number, lang: "es" | "en" = "es"): Resol
     return { steps, trace }
   }
 
-  // ── TRAMO_1 ↔ TRAMO_3 vía nodo P2 (pasillo interior) ────
-  if (inTramo1(from) && inTramo3(to) && to !== 2) {
-    wi(from, 2, TRAMO_1)
-    wi(2, to, TRAMO_3)
+  // ── TRAMO_1 (Sur Occidental + Plazoleta) ↔ TRAMO_3 (Norte Occidental) ────
+  // Ya NO hay pasillo interior: se enlaza por el exterior (La Esperanza) a
+  // través de la Plazoleta (P1) y la Puerta 10-11.
+  if (inTramo1(from) && inTramo3(to)) {
+    wi(from, PLAZOLETA_GATE, TRAMO_1)   // pasillo interior hasta la Plazoleta
+    plazoletaToWest()                   // exterior La Esperanza + H. Vans Risn
+    wi(10, to, TRAMO_3)                 // pasillo interior Norte Occidental
     return { steps, trace }
   }
-  if (inTramo3(from) && inTramo1(to) && from !== 2) {
-    wi(from, 2, TRAMO_3)
-    wi(2, to, TRAMO_1)
-    return { steps, trace }
-  }
-
-  // ── Plazoleta (gate=1): el usuario YA está en la plazoleta, no caminar hasta P2 ─
-  // Tratar la plazoleta como si fuera el nodo P2 para seguir hacia otros tramos,
-  // con el paso "Pasa por la Plazoleta" ya implícito en el origen.
-
-  if (from === PLAZOLETA_GATE && inTramo2(to)) {
-    if (to <= 6) {
-      // Plazoleta → P2 → P3 → exterior Cacica Quilago → P5/P6
-      wi(PLAZOLETA_GATE, 2, TRAMO_3)   // "De Puerta 1 a Puerta 2" — solo 1 segmento corto
-      wi(2, 3, TRAMO_1)
-      steps.push(...ext(3, ["Calle Cacica Quilago"], to))
-    } else {
-      // Plazoleta → P11 → P10 → exterior H. Vans Risn → destino (P9 o Puerta 7-8)
-      wi(PLAZOLETA_GATE, 10, TRAMO_3)
-      westToTramo2(to)
-    }
-    return { steps, trace }
-  }
-  if (inTramo2(from) && to === PLAZOLETA_GATE) {
-    if (from <= 6) {
-      wi(from, 5, TRAMO_2)
-      steps.push(...ext(5, ["Calle Cacica Quilago"], 3))
-      wi(3, 2, TRAMO_1)
-    } else {
-      tramo2ToWest(from)
-      wi(10, PLAZOLETA_GATE, TRAMO_3)
-      return { steps, trace }
-    }
-    wi(2, PLAZOLETA_GATE, TRAMO_3)
-    return { steps, trace }
-  }
-
-  // ── Plazoleta ↔ TRAMO_1: ir hacia P2 y continuar ────────────────────────
-  if (from === PLAZOLETA_GATE && inTramo1(to)) {
-    wi(PLAZOLETA_GATE, 2, TRAMO_3)
-    wi(2, to, TRAMO_1)
-    return { steps, trace }
-  }
-  if (inTramo1(from) && to === PLAZOLETA_GATE) {
-    wi(from, 2, TRAMO_1)
-    wi(2, PLAZOLETA_GATE, TRAMO_3)
-    return { steps, trace }
-  }
-
-  // ── Plazoleta ↔ P4 ───────────────────────────────────────────────────────
-  if (from === PLAZOLETA_GATE && to === 4) {
-    wi(PLAZOLETA_GATE, 2, TRAMO_3)
-    wi(2, 3, TRAMO_1)
-    steps.push(...ext(3, ["Calle Cacica Quilago"], 4))
-    return { steps, trace }
-  }
-  if (from === 4 && to === PLAZOLETA_GATE) {
-    steps.push(...ext(4, ["Calle Cacica Quilago"], 3))
-    wi(3, 2, TRAMO_1)
-    wi(2, PLAZOLETA_GATE, TRAMO_3)
-    return { steps, trace }
-  }
-
-  // ── P2 (Palco Sur Occidental) ↔ TRAMO_2 NORTE (P7/P8/P9): vía Plazoleta ──
-  // Desde P2 hacia el norte oriental, la ruta natural es por la Plazoleta →
-  // P11 → P10 → exterior (Hermensz) → P9. (Las secciones del sur oriental,
-  // P5/P6, siguen saliendo por P3 en el bloque TRAMO_1 ↔ TRAMO_2 de abajo.)
-  if (from === 2 && inTramo2(to) && to > 6) {
-    wi(2, 10, TRAMO_3)
-    westToTramo2(to)
-    return { steps, trace }
-  }
-  if (inTramo2(from) && from > 6 && to === 2) {
-    tramo2ToWest(from)
-    wi(10, 2, TRAMO_3)
+  if (inTramo3(from) && inTramo1(to)) {
+    wi(from, 10, TRAMO_3)
+    westToPlazoleta()
+    wi(PLAZOLETA_GATE, to, TRAMO_1)
     return { steps, trace }
   }
 
   // ── TRAMO_2 ↔ TRAMO_3: P9 ↔ P10 por Hermensz ───────────
-  // P2 se excluye (to/from !== 2) porque, aunque pertenece a TRAMO_3, su
-  // salida natural hacia el oriente es por el sur (P3 → Cacica Quilago),
-  // no por el norte/Plazoleta. Cae al bloque TRAMO_1 ↔ TRAMO_2.
-  if (inTramo2(from) && inTramo3(to) && to !== 2) {
+  if (inTramo2(from) && inTramo3(to)) {
     tramo2ToWest(from)
     wi(10, to, TRAMO_3)
     return { steps, trace }
   }
-  if (inTramo3(from) && inTramo2(to) && from !== 2) {
+  if (inTramo3(from) && inTramo2(to)) {
     wi(from, 10, TRAMO_3)
     westToTramo2(to)
     return { steps, trace }
   }
-
   // ── TRAMO_1 ↔ TRAMO_2: salida sur por P3 → Cacica Quilago ────
   // Tanto P5/P6 como P7/P8/P9 se alcanzan saliendo por P3 al exterior
   // (Cacica Quilago) y entrando por el lado oriental. Nunca por la Plazoleta.
@@ -662,15 +680,16 @@ function resolveRoute(from: number, to: number, lang: "es" | "en" = "es"): Resol
   }
 
   // ── Rutas con P4 (General Sur) ───────────────────────────
-  if (from === 4 && (inTramo1(to) || inTramo3(to))) {
+  // P4 ↔ TRAMO_1 (incl. Plazoleta) por el sur: Cacica Quilago ↔ P3.
+  // P4 ↔ TRAMO_3 (Norte Occidental) se resuelve más abajo por el norte
+  // (Cacica + Diego Vásquez → P5 → … → P9 → H. Vans Risn → P10).
+  if (from === 4 && inTramo1(to)) {
     steps.push(...ext(4, ["Calle Cacica Quilago"], 3))
-    if (inTramo3(to)) { wi(3, 2, TRAMO_1); wi(2, to, TRAMO_3) }
-    else wi(3, to, TRAMO_1)
+    wi(3, to, TRAMO_1)
     return { steps, trace }
   }
-  if (to === 4 && (inTramo1(from) || inTramo3(from))) {
-    if (inTramo3(from)) { wi(from, 2, TRAMO_3); wi(2, 3, TRAMO_1) }
-    else wi(from, 3, TRAMO_1)
+  if (to === 4 && inTramo1(from)) {
+    wi(from, 3, TRAMO_1)
     steps.push(...ext(3, ["Calle Cacica Quilago"], 4))
     return { steps, trace }
   }
