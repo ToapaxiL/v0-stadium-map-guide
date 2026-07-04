@@ -859,27 +859,15 @@ const SPECIAL_ROUTES: Record<string, SpecialRouteBuilder> = {
   "general-norte-occidental|tribuna-sur-occidental": makeWestLoopRoute(9, 3, "n2s"),
   "tribuna-sur-occidental|general-norte-occidental": makeWestLoopRoute(9, 3, "s2n"),
 
-  // ── Sur Occidental {Plazoleta(P1), P2, P3} ↔ Norte Oriental {P7, P8, P9 Ori} ──
-  //    Por el OESTE (La Esperanza → H. Vans Risn), NUNCA por el corredor este.
-  //    P7/P8 entran por la Puerta 7-8; General Norte Oriental por la Puerta 9W.
-  "plazoleta|palco-norte-oriental":                  makeNorthEastWestRoute(7, 1, "s2n"),
-  "palco-norte-oriental|plazoleta":                  makeNorthEastWestRoute(7, 1, "n2s"),
-  "plazoleta|tribuna-norte-oriental":                makeNorthEastWestRoute(8, 1, "s2n"),
-  "tribuna-norte-oriental|plazoleta":                makeNorthEastWestRoute(8, 1, "n2s"),
+  // ── Sur Occidental {Plazoleta(P1), P2, P3} ↔ General Norte Oriental (P9 Ori) ──
+  //    SOLO General Norte Oriental va por el OESTE (La Esperanza → H. Vans Risn),
+  //    entrando por la Puerta 9W y subiendo internamente por General Norte.
+  //    Palco/Tribuna Norte Oriental (P7/P8) NO: mantienen el corredor ESTE
+  //    (Cacica Quilago) que resuelve el motor genérico.
   "plazoleta|general-norte-oriental":                makeNorthEastWestRoute(9, 1, "s2n"),
   "general-norte-oriental|plazoleta":                makeNorthEastWestRoute(9, 1, "n2s"),
-
-  "palco-sur-occidental|palco-norte-oriental":       makeNorthEastWestRoute(7, 2, "s2n"),
-  "palco-norte-oriental|palco-sur-occidental":       makeNorthEastWestRoute(7, 2, "n2s"),
-  "palco-sur-occidental|tribuna-norte-oriental":     makeNorthEastWestRoute(8, 2, "s2n"),
-  "tribuna-norte-oriental|palco-sur-occidental":     makeNorthEastWestRoute(8, 2, "n2s"),
   "palco-sur-occidental|general-norte-oriental":     makeNorthEastWestRoute(9, 2, "s2n"),
   "general-norte-oriental|palco-sur-occidental":     makeNorthEastWestRoute(9, 2, "n2s"),
-
-  "tribuna-sur-occidental|palco-norte-oriental":     makeNorthEastWestRoute(7, 3, "s2n"),
-  "palco-norte-oriental|tribuna-sur-occidental":     makeNorthEastWestRoute(7, 3, "n2s"),
-  "tribuna-sur-occidental|tribuna-norte-oriental":   makeNorthEastWestRoute(8, 3, "s2n"),
-  "tribuna-norte-oriental|tribuna-sur-occidental":   makeNorthEastWestRoute(8, 3, "n2s"),
   "tribuna-sur-occidental|general-norte-oriental":   makeNorthEastWestRoute(9, 3, "s2n"),
   "general-norte-oriental|tribuna-sur-occidental":   makeNorthEastWestRoute(9, 3, "n2s"),
 }
