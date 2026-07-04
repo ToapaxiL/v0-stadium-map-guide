@@ -238,7 +238,6 @@ export function StadiumRouteMap({ result }: Props) {
           draggable={false}
         />
 
-        {/* Capa 1: SÓLO la línea de ruta (queda por DEBAJO de los rótulos) */}
         <svg
           viewBox={`0 0 ${VW} ${VH}`}
           className="absolute inset-0 w-full h-full pointer-events-none"
@@ -296,26 +295,7 @@ export function StadiumRouteMap({ result }: Props) {
               strokeDashoffset={`${len}`}
             />
           )}
-        </svg>
 
-        {/* Capa 2: copia del mapa en modo "darken" → los rótulos y trazos
-            oscuros del mapa vuelven a quedar POR ENCIMA de la línea, mientras
-            que sobre las calles claras la línea cian sigue visible. */}
-        <img
-          src="/images/mapa-rutas.svg"
-          alt=""
-          aria-hidden="true"
-          className="absolute inset-0 w-full h-auto block pointer-events-none"
-          style={{ mixBlendMode: "darken" }}
-          draggable={false}
-        />
-
-        {/* Capa 3: marcadores A/B y badges de puerta (siempre encima de todo) */}
-        <svg
-          viewBox={`0 0 ${VW} ${VH}`}
-          className="absolute inset-0 w-full h-full pointer-events-none"
-          preserveAspectRatio="xMidYMid meet"
-        >
           {/* Pulso en punto A */}
           <circle cx={posA.x} cy={posA.y} r={15} fill="#22c55e" opacity={0.15}>
             <animate attributeName="r" values="10;18;10" dur="2s" repeatCount="indefinite" />
