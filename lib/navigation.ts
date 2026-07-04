@@ -261,7 +261,8 @@ const PT = {
   laEspNWJog:    { x: 212.252, y: 397.188 }, // quiebre hacia el borde occidental
   laEspNWCorner: { x: 212.253, y: 467.546 }, // esquina inferior (inicio La Esperanza)
   laEspP1:       { x: 531.823, y: 486.546 }, // La Esperanza a la altura de la Puerta 1
-  plazoletaP1:   { x: 531.822, y: 418.299 }, // Plazoleta (Puerta 1)
+  p1TurnUp:      { x: 531.822, y: 418.299 }, // giro hacia arriba en la Puerta 1
+  plazoletaP1:   { x: 474.215, y: 388.346 }, // Plazoleta (Puerta 1) — destino real
 }
 
 // Longitud de una polilínea (unidades SVG).
@@ -423,7 +424,7 @@ const SPECIAL_ROUTES: Record<string, SpecialRouteBuilder> = {
   "tribuna-norte-occidental|plazoleta": (lang) => {
     const path = [
       PT.p10Seat, PT.p1011Corner, PT.p1011Exterior, PT.p1011Down,
-      PT.laEspNWJog, PT.laEspNWCorner, PT.laEspP1, PT.plazoletaP1,
+      PT.laEspNWJog, PT.laEspNWCorner, PT.laEspP1, PT.p1TurnUp, PT.plazoletaP1,
     ]
     const steps: RouteStep[] =
       lang === "es"
@@ -456,7 +457,7 @@ const SPECIAL_ROUTES: Record<string, SpecialRouteBuilder> = {
   // ── RUTA 3 (inversa): Plazoleta (P1) → Tribuna Norte Occidental (P10) ──
   "plazoleta|tribuna-norte-occidental": (lang) => {
     const path = [
-      PT.plazoletaP1, PT.laEspP1, PT.laEspNWCorner, PT.laEspNWJog,
+      PT.plazoletaP1, PT.p1TurnUp, PT.laEspP1, PT.laEspNWCorner, PT.laEspNWJog,
       PT.p1011Down, PT.p1011Exterior, PT.p1011Corner, PT.p10Seat,
     ]
     const steps: RouteStep[] =
