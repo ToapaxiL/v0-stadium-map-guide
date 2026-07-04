@@ -161,14 +161,14 @@ function walkInternal(
       })
     }
     if (to === 9) {
-      // oriental → P9: camina interno hasta P8, sale por 7-8, Hermenz, entra P9
+      // oriental → P9: camina interno hasta P8, sale por 7-8, Hermenz, entra por 9W
       emitOriental(oriental, 8)
       steps.push({ type: "external", instruction: t.exitGate("7-8"), icon: "exit" })
       steps.push({ type: "external", instruction: t.walkStreet("H. Vans Risn"), icon: "walk" })
-      steps.push({ type: "external", instruction: t.enterGate(9), icon: "enter" })
+      steps.push({ type: "external", instruction: t.enterGate("9W"), icon: "enter" })
     } else {
-      // P9 → oriental: sale por P9, Hermenz, entra por 7-8, camina interno hasta destino
-      steps.push({ type: "external", instruction: t.exitGate(9), icon: "exit" })
+      // P9 → oriental: sale por 9W, Hermenz, entra por 7-8, camina interno hasta destino
+      steps.push({ type: "external", instruction: t.exitGate("9W"), icon: "exit" })
       steps.push({ type: "external", instruction: t.walkStreet("H. Vans Risn"), icon: "walk" })
       steps.push({ type: "external", instruction: t.enterGate("7-8"), icon: "enter" })
       emitOriental(8, oriental)
@@ -787,22 +787,23 @@ function resolveRoute(from: number, to: number, lang: "es" | "en" = "es"): Resol
   }
 
   // ── Conexión oeste (P10/Hermenz) ↔ TRAMO_2 ──────────────────────────────
-  // General Norte (P9) se entra/sale por la Puerta 9; las secciones orientales
-  // (P5-P8) se alcanzan por la Puerta 7-8 caminando por H. Vans Risn.
+  // General Norte Occidental (P9) SIEMPRE se entra/sale por la Puerta 9W y
+  // Tribuna Norte Occidental (P10) SIEMPRE por la Puerta 10-11; las secciones
+  // orientales (P5-P8) se alcanzan por la Puerta 7-8 caminando por H. Vans Risn.
   const westToTramo2 = (target: number) => {
     if (target === 9) {
-      steps.push(...ext(10, ["H. Vans Risn"], 9))
+      steps.push(...ext(10, ["H. Vans Risn"], 9, { exitLabel: "10-11", entryLabel: "9W" }))
     } else {
-      steps.push(...ext(10, ["H. Vans Risn"], 8, { entryLabel: "7-8" }))
+      steps.push(...ext(10, ["H. Vans Risn"], 8, { exitLabel: "10-11", entryLabel: "7-8" }))
       wi(8, target, TRAMO_2)
     }
   }
   const tramo2ToWest = (source: number) => {
     if (source === 9) {
-      steps.push(...ext(9, ["H. Vans Risn"], 10))
+      steps.push(...ext(9, ["H. Vans Risn"], 10, { exitLabel: "9W", entryLabel: "10-11" }))
     } else {
       wi(source, 8, TRAMO_2)
-      steps.push(...ext(8, ["H. Vans Risn"], 10, { exitLabel: "7-8" }))
+      steps.push(...ext(8, ["H. Vans Risn"], 10, { exitLabel: "7-8", entryLabel: "10-11" }))
     }
   }
 
