@@ -516,11 +516,23 @@ function p4Head(sub: "alta" | "baja"): Pt[] {
   return sub === "alta" ? [...P4_ENTER] : [...P4_ENTER, PT.p4BajaSeat]
 }
 
-// Cola interna de la General Sur hacia el lado oriental: Alta → Baja → P5 (→ P6).
-// Todo este recorrido es INTERNO (no vuelve a salir a la calle).
+// Cola interna de la General Sur hacia el lado oriental, recorriendo el borde
+// superior en orden físico: Alta → Baja → P5 → P6 → P7 → P8. Todo este
+// recorrido es INTERNO (no vuelve a salir a la calle). Se detiene al llegar a
+// la sección `east` solicitada.
+const EAST_CHAIN: { gate: number; pt: Pt }[] = [
+  { gate: 5, pt: PT.p5Seat }, // Tribuna Sur Oriental
+  { gate: 6, pt: PT.p6Seat }, // Palco Sur Oriental
+  { gate: 7, pt: PT.p7Seat }, // Palco Norte Oriental
+  { gate: 8, pt: PT.p8Seat }, // Tribuna Norte Oriental
+]
 function eastHead(east: number): Pt[] {
-  const base = [...P4_ENTER, PT.p4BajaSeat, PT.p5Seat] // ...Alta → Baja → P5
-  return east === 6 ? [...base, PT.p6Seat] : base
+  const pts = [...P4_ENTER, PT.p4BajaSeat] // ...Alta → Baja
+  for (const node of EAST_CHAIN) {
+    pts.push(node.pt)
+    if (node.gate === east) break
+  }
+  return pts
 }
 
 function makeSouthCorridorRoute(t1: number, sub: "alta" | "baja", dir: "out" | "in"): SpecialRouteBuilder {
@@ -577,8 +589,10 @@ function makeSouthCorridorRoute(t1: number, sub: "alta" | "baja", dir: "out" | "
 // se sigue internamente hacia el oriental.
 // ============================================================
 const SOUTH_EAST_NAMES: Record<number, { es: string; en: string; gate: string }> = {
-  5: { es: "Tribuna Sur Oriental", en: "South East Stand", gate: "5" },
-  6: { es: "Palco Sur Oriental",   en: "South East Box",   gate: "6" },
+  5: { es: "Tribuna Sur Oriental",   en: "South East Stand", gate: "5" },
+  6: { es: "Palco Sur Oriental",     en: "South East Box",   gate: "6" },
+  7: { es: "Palco Norte Oriental",   en: "North East Box",   gate: "7" },
+  8: { es: "Tribuna Norte Oriental", en: "North East Stand", gate: "8" },
 }
 
 function makeEastCorridorRoute(t1: number, east: number, dir: "out" | "in"): SpecialRouteBuilder {
@@ -598,11 +612,23 @@ function makeEastCorridorRoute(t1: number, east: number, dir: "out" | "in"): Spe
       steps.push({ type: "external", instruction: es ? "Sal por la Puerta 2-3" : "Exit through Gate 2-3", icon: "exit" })
       steps.push({ type: "external", instruction: es ? "Camina por Calle Cacica Quilago" : "Walk along Calle Cacica Quilago", icon: "walk" })
       steps.push({ type: "external", instruction: es ? "Ingresa por la Puerta 4 LOCAL a General Sur Alta" : "Enter through Gate 4 LOCAL into South High General", icon: "enter" })
-      steps.push({ type: "internal", instruction: es ? `Continúa internamente por General Sur (Alta y Baja) hasta ${nE.es}` : `Continue internally through South General (High and Low) to ${nE.en}`, icon: "walk" })
+      steps.push({ type: "internal", instruction: es
+        ? (east >= 7
+            ? `Continúa internamente por General Sur (Alta y Baja) y el Sur Oriental hasta ${nE.es}`
+            : `Continúa internamente por General Sur (Alta y Baja) hasta ${nE.es}`)
+        : (east >= 7
+            ? `Continue internally through South General (High and Low) and the South East to ${nE.en}`
+            : `Continue internally through South General (High and Low) to ${nE.en}`), icon: "walk" })
       steps.push({ type: "arrive", instruction: es ? nE.es : nE.en, detail: `${gw} ${nE.gate}`, icon: "flag" })
     } else {
       steps.push({ type: "start", instruction: es ? nE.es : nE.en, detail: `${gw} ${nE.gate}`, icon: "pin" })
-      steps.push({ type: "internal", instruction: es ? "Camina internamente por General Sur (Baja y Alta) hasta la Puerta 4 LOCAL" : "Walk internally through South General (Low and High) to Gate 4 LOCAL", icon: "walk" })
+      steps.push({ type: "internal", instruction: es
+        ? (east >= 7
+            ? "Camina internamente por el Sur Oriental y General Sur (Baja y Alta) hasta la Puerta 4 LOCAL"
+            : "Camina internamente por General Sur (Baja y Alta) hasta la Puerta 4 LOCAL")
+        : (east >= 7
+            ? "Walk internally through the South East and South General (Low and High) to Gate 4 LOCAL"
+            : "Walk internally through South General (Low and High) to Gate 4 LOCAL"), icon: "walk" })
       steps.push({ type: "external", instruction: es ? "Sal por la Puerta 4 LOCAL" : "Exit through Gate 4 LOCAL", icon: "exit" })
       steps.push({ type: "external", instruction: es ? "Camina por Calle Cacica Quilago" : "Walk along Calle Cacica Quilago", icon: "walk" })
       steps.push({ type: "external", instruction: es ? "Ingresa por la Puerta 2-3" : "Enter through Gate 2-3", icon: "enter" })
@@ -713,6 +739,23 @@ const SPECIAL_ROUTES: Record<string, SpecialRouteBuilder> = {
   "tribuna-sur-oriental|plazoleta":              makeEastCorridorRoute(1, 5, "in"),
   "plazoleta|palco-sur-oriental":                makeEastCorridorRoute(1, 6, "out"),
   "palco-sur-oriental|plazoleta":                makeEastCorridorRoute(1, 6, "in"),
+
+  // ── Sur Occidental {Plazoleta(P1), P2, P3} ↔ Norte Oriental {P7, P8} ──
+  //    Por el ESTE: Puerta 2-3 → Calle Cacica Quilago → Puerta 4 LOCAL →
+  //    General Sur Alta → Baja → (Sur Oriental) → Palco/Tribuna Norte Oriental.
+  //    (General Norte Oriental sí va por el oeste; ver makeNorthEastWestRoute.)
+  "plazoleta|palco-norte-oriental":              makeEastCorridorRoute(1, 7, "out"),
+  "palco-norte-oriental|plazoleta":              makeEastCorridorRoute(1, 7, "in"),
+  "plazoleta|tribuna-norte-oriental":            makeEastCorridorRoute(1, 8, "out"),
+  "tribuna-norte-oriental|plazoleta":            makeEastCorridorRoute(1, 8, "in"),
+  "palco-sur-occidental|palco-norte-oriental":   makeEastCorridorRoute(2, 7, "out"),
+  "palco-norte-oriental|palco-sur-occidental":   makeEastCorridorRoute(2, 7, "in"),
+  "palco-sur-occidental|tribuna-norte-oriental": makeEastCorridorRoute(2, 8, "out"),
+  "tribuna-norte-oriental|palco-sur-occidental": makeEastCorridorRoute(2, 8, "in"),
+  "tribuna-sur-occidental|palco-norte-oriental": makeEastCorridorRoute(3, 7, "out"),
+  "palco-norte-oriental|tribuna-sur-occidental": makeEastCorridorRoute(3, 7, "in"),
+  "tribuna-sur-occidental|tribuna-norte-oriental": makeEastCorridorRoute(3, 8, "out"),
+  "tribuna-norte-oriental|tribuna-sur-occidental": makeEastCorridorRoute(3, 8, "in"),
 
   // ── RUTA 2: General Norte Occidental (P9) → Tribuna Norte Occidental (P10) ──
   //    Salida por Puerta 9W, calle Hermensz Van Risn Rembrandt e ingreso por
