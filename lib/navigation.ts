@@ -982,24 +982,18 @@ function resolveRoute(from: number, to: number, lang: "es" | "en" = "es"): Resol
   }
 
   // ── Conexión oeste (P10/Hermenz) ↔ TRAMO_2 ──────────────────────────────
-  // General Norte Occidental (P9) SIEMPRE se entra/sale por la Puerta 9W y
-  // Tribuna Norte Occidental (P10) SIEMPRE por la Puerta 10-11; las secciones
-  // orientales (P5-P8) se alcanzan por la Puerta 7-8 caminando por H. Vans Risn.
+  // Con el nuevo acceso interno P8 ↔ P9, TODO el lado oriental (P5-P9) queda
+  // conectado por dentro hasta General Norte Oriental (P9). Por eso el cruce al
+  // bloque Norte Occidental YA NO usa la Puerta 7-8: siempre se camina
+  // internamente hasta P9 y se cruza por la Puerta 9W ↔ Puerta 10-11 (H. Vans
+  // Risn). Tribuna Norte Occidental (P10) siempre entra/sale por la Puerta 10-11.
   const westToTramo2 = (target: number) => {
-    if (target === 9) {
-      steps.push(...ext(10, ["H. Vans Risn"], 9, { exitLabel: "10-11", entryLabel: "9W" }))
-    } else {
-      steps.push(...ext(10, ["H. Vans Risn"], 8, { exitLabel: "10-11", entryLabel: "7-8" }))
-      wi(8, target, TRAMO_2)
-    }
+    steps.push(...ext(10, ["H. Vans Risn"], 9, { exitLabel: "10-11", entryLabel: "9W" }))
+    wi(9, target, TRAMO_2)
   }
   const tramo2ToWest = (source: number) => {
-    if (source === 9) {
-      steps.push(...ext(9, ["H. Vans Risn"], 10, { exitLabel: "9W", entryLabel: "10-11" }))
-    } else {
-      wi(source, 8, TRAMO_2)
-      steps.push(...ext(8, ["H. Vans Risn"], 10, { exitLabel: "7-8", entryLabel: "10-11" }))
-    }
+    wi(source, 9, TRAMO_2)
+    steps.push(...ext(9, ["H. Vans Risn"], 10, { exitLabel: "9W", entryLabel: "10-11" }))
   }
 
   // ── Conexión Sur Occidental (Plazoleta P1) ↔ Norte Occidental (P10) ──────
