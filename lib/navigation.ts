@@ -438,10 +438,10 @@ function makeNorthEastWestRoute(north: number, south: number, dir: "n2s" | "s2n"
     const northGate = north === 9 ? "9W" : "7-8"
     // Paso interno tras/antes de la puerta de calle, según el destino norte.
     const innerTo = north === 9
-      ? (es ? "Sube internamente por General Norte hasta General Norte Oriental" : "Walk up internally through North General to North East General")
+      ? (es ? "Camina internamente por General Norte hasta General Norte Oriental" : "Walk internally through North General to North East General")
       : (es ? `Camina internamente hasta la Puerta ${nName.gate}` : `Walk internally to Gate ${nName.gate}`)
     const innerFrom = north === 9
-      ? (es ? "Baja internamente por General Norte hasta la Puerta 9W" : "Walk down internally through North General to Gate 9W")
+      ? (es ? "Camina internamente por General Norte hasta la Puerta 9W" : "Walk internally through North General to Gate 9W")
       : (es ? "Camina internamente hasta la Puerta 7-8" : "Walk internally to Gate 7-8")
     const steps: RouteStep[] = []
 
