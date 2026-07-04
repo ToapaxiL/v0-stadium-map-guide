@@ -303,6 +303,7 @@ type SpecialRouteBuilder = (lang: "es" | "en") => Omit<RouteResult, "from" | "to
 // combinaciones se generan como rutas especiales con su polilínea exacta.
 // ============================================================
 const WEST_LOOP_NAMES: Record<number, { es: string; en: string; gate: string }> = {
+  9:  { es: "General Norte Occidental", en: "North West General", gate: "9"  },
   10: { es: "Tribuna Norte Occidental", en: "North West Stand", gate: "10" },
   11: { es: "Palco Norte Occidental",   en: "North West Box",   gate: "11" },
   1:  { es: "Plazoleta",                en: "Plaza",            gate: "1"  },
@@ -310,16 +311,24 @@ const WEST_LOOP_NAMES: Record<number, { es: string; en: string; gate: string }> 
   3:  { es: "Tribuna Sur Occidental",   en: "South West Stand", gate: "3"  },
 }
 
-// Tramo exterior compartido entre la Puerta 10-11 y la Puerta 1 (Plazoleta).
-const WEST_LOOP_MID = [
-  PT.p1011Corner, PT.p1011Exterior, PT.p1011Down,
-  PT.laEspNWJog, PT.laEspNWCorner, PT.laEspP1, PT.p1TurnUp,
-]
-
 type Pt = { x: number; y: number }
 
-// Cola interior del lado NORTE (asiento → Puerta 10-11).
+// Tramo exterior compartido hasta la Puerta 1 (Plazoleta). El giro p1011Corner
+// solo aplica a P10/P11 (que salen del asiento hacia la Puerta 10-11); General
+// Norte Occidental (P9) baja RECTO desde la Puerta 9W y lo omite.
+function westLoopMid(north: number): Pt[] {
+  const head = north === 9 ? [] : [PT.p1011Corner]
+  return [
+    ...head, PT.p1011Exterior, PT.p1011Down,
+    PT.laEspNWJog, PT.laEspNWCorner, PT.laEspP1, PT.p1TurnUp,
+  ]
+}
+
+// Cola interior del lado NORTE (asiento → puerta de salida).
+// P9 (General Norte Occidental) usa SIEMPRE su enlace vertical interno
+// p9OccSeat → p9OccJunction → Puerta 9W. P10/P11 usan la Puerta 10-11.
 function northTail(gate: number): Pt[] {
+  if (gate === 9)  return [PT.p9OccSeat, PT.p9OccJunction, PT.p9wExterior]
   return gate === 11 ? [PT.p11Seat, PT.p10Seat] : [PT.p10Seat]
 }
 // Cola interior del lado SUR (Plazoleta → asiento).
@@ -333,19 +342,21 @@ function southTail(gate: number): Pt[] {
 // SUR (1/2/3), en cualquier sentido, con pasos que reflejan la polilínea.
 function makeWestLoopRoute(north: number, south: number, dir: "n2s" | "s2n"): SpecialRouteBuilder {
   return (lang) => {
-    const forward = [...northTail(north), ...WEST_LOOP_MID, ...southTail(south)]
+    const forward = [...northTail(north), ...westLoopMid(north), ...southTail(south)]
     const path = dir === "n2s" ? forward : [...forward].reverse()
 
     const nName = WEST_LOOP_NAMES[north]
     const sName = WEST_LOOP_NAMES[south]
     const es = lang === "es"
+    // General Norte Occidental (P9) sale/entra por la Puerta 9W; P10/P11 por 10-11.
+    const northGate = north === 9 ? "9W" : "10-11"
     const steps: RouteStep[] = []
 
     if (dir === "n2s") {
       steps.push({ type: "start", instruction: es ? nName.es : nName.en, detail: `${es ? "Puerta" : "Gate"} ${nName.gate}`, icon: "pin" })
       if (north === 11)
         steps.push({ type: "internal", instruction: es ? "Camina hasta la Puerta 10-11" : "Walk to Gate 10-11", icon: "walk" })
-      steps.push({ type: "external", instruction: es ? "Sal por la Puerta 10-11" : "Exit through Gate 10-11", icon: "exit" })
+      steps.push({ type: "external", instruction: es ? `Sal por la Puerta ${northGate}` : `Exit through Gate ${northGate}`, icon: "exit" })
       steps.push({ type: "external", instruction: es ? "Camina por H. Vans Risn siguiendo la ruta señalizada" : "Walk along H. Vans Risn following the marked route", icon: "walk" })
       steps.push({ type: "external", instruction: es ? "Gira a la derecha hacia la Puerta 1" : "Turn right toward Gate 1", icon: "walk" })
       steps.push({ type: "external", instruction: es ? "Continúa por La Esperanza siguiendo la ruta señalizada" : "Continue along La Esperanza following the marked route", icon: "walk" })
@@ -363,17 +374,19 @@ function makeWestLoopRoute(north: number, south: number, dir: "n2s" | "s2n"): Sp
       steps.push({ type: "external", instruction: es ? "Sal por la Puerta 1" : "Exit through Gate 1", icon: "exit" })
       steps.push({ type: "external", instruction: es ? "Camina por La Esperanza siguiendo la ruta señalizada" : "Walk along La Esperanza following the marked route", icon: "walk" })
       steps.push({ type: "external", instruction: es ? "Gira a la izquierda hacia H. Vans Risn" : "Turn left toward H. Vans Risn", icon: "walk" })
-      steps.push({ type: "external", instruction: es ? "Ingresa por la Puerta 10-11" : "Enter through Gate 10-11", icon: "enter" })
+      steps.push({ type: "external", instruction: es ? `Ingresa por la Puerta ${northGate}` : `Enter through Gate ${northGate}`, icon: "enter" })
       if (north === 11)
         steps.push({ type: "internal", instruction: es ? "Camina hasta la Puerta 11" : "Walk to Gate 11", icon: "walk" })
       steps.push({ type: "arrive", instruction: es ? nName.es : nName.en, detail: `${es ? "Puerta" : "Gate"} ${nName.gate}`, icon: "flag" })
     }
 
+    // El nodo de calle es la Puerta 10-11 para P10/P11 y la Puerta 9W (→10-11) para P9.
+    const northNode = north === 9 ? 9 : 10
     return {
       steps,
       totalSteps: steps.length,
       usesExterior: true,
-      gateTrace: dir === "n2s" ? [north, 10, 1, south] : [south, 1, 10, north],
+      gateTrace: dir === "n2s" ? [north, northNode, 1, south] : [south, 1, northNode, north],
       specialPath: path,
       specialMeters: metersOf(path),
     }
@@ -679,6 +692,57 @@ const SPECIAL_ROUTES: Record<string, SpecialRouteBuilder> = {
     }
   },
 
+  // ── RUTA 2b: General Norte Occidental (P9) ↔ Palco Norte Occidental (P11) ──
+  //    Mismo enlace por la Puerta 9W; a P11 se llega internamente vía Puerta 10-11.
+  "general-norte-occidental|palco-norte-occidental": (lang) => {
+    const path = [
+      PT.p9OccSeat, PT.p9OccJunction, PT.p9wExterior, PT.p1011Exterior, PT.p1011Corner, PT.p10Seat, PT.p11Seat,
+    ]
+    const steps: RouteStep[] =
+      lang === "es"
+        ? [
+            { type: "start",    instruction: "General Norte Occidental", detail: "Puerta 9", icon: "pin" },
+            { type: "external", instruction: "Sal por la Puerta 9W", icon: "exit" },
+            { type: "external", instruction: "Camina por H. Vans Risn", icon: "walk" },
+            { type: "external", instruction: "Ingresa por la Puerta 10-11", icon: "enter" },
+            { type: "internal", instruction: "Camina hasta la Puerta 11", icon: "walk" },
+            { type: "arrive",   instruction: "Palco Norte Occidental", detail: "Puerta 11", icon: "flag" },
+          ]
+        : [
+            { type: "start",    instruction: "North West General", detail: "Gate 9", icon: "pin" },
+            { type: "external", instruction: "Exit through Gate 9W", icon: "exit" },
+            { type: "external", instruction: "Walk along H. Vans Risn", icon: "walk" },
+            { type: "external", instruction: "Enter through Gate 10-11", icon: "enter" },
+            { type: "internal", instruction: "Walk to Gate 11", icon: "walk" },
+            { type: "arrive",   instruction: "North West Box", detail: "Gate 11", icon: "flag" },
+          ]
+    return { steps, totalSteps: steps.length, usesExterior: true, gateTrace: [9, 10, 11], specialPath: path, specialMeters: metersOf(path) }
+  },
+  "palco-norte-occidental|general-norte-occidental": (lang) => {
+    const path = [
+      PT.p11Seat, PT.p10Seat, PT.p1011Corner, PT.p1011Exterior, PT.p9wExterior, PT.p9OccJunction, PT.p9OccSeat,
+    ]
+    const steps: RouteStep[] =
+      lang === "es"
+        ? [
+            { type: "start",    instruction: "Palco Norte Occidental", detail: "Puerta 11", icon: "pin" },
+            { type: "internal", instruction: "Camina hasta la Puerta 10-11", icon: "walk" },
+            { type: "external", instruction: "Sal por la Puerta 10-11", icon: "exit" },
+            { type: "external", instruction: "Camina por H. Vans Risn", icon: "walk" },
+            { type: "external", instruction: "Ingresa por la Puerta 9W", icon: "enter" },
+            { type: "arrive",   instruction: "General Norte Occidental", detail: "Puerta 9", icon: "flag" },
+          ]
+        : [
+            { type: "start",    instruction: "North West Box", detail: "Gate 11", icon: "pin" },
+            { type: "internal", instruction: "Walk to Gate 10-11", icon: "walk" },
+            { type: "external", instruction: "Exit through Gate 10-11", icon: "exit" },
+            { type: "external", instruction: "Walk along H. Vans Risn", icon: "walk" },
+            { type: "external", instruction: "Enter through Gate 9W", icon: "enter" },
+            { type: "arrive",   instruction: "North West General", detail: "Gate 9", icon: "flag" },
+          ]
+    return { steps, totalSteps: steps.length, usesExterior: true, gateTrace: [11, 10, 9], specialPath: path, specialMeters: metersOf(path) }
+  },
+
   // ── RUTA 3 y familia: Norte Occidental {P10, P11} ↔ Sur Occidental {P1, P2, P3} ──
   //    Todas por el exterior (Puerta 10-11 → H. Vans Risn → La Esperanza →
   //    Puerta 1). Generadas con makeWestLoopRoute para que mapa e indicaciones
@@ -695,6 +759,15 @@ const SPECIAL_ROUTES: Record<string, SpecialRouteBuilder> = {
   "palco-sur-occidental|palco-norte-occidental":     makeWestLoopRoute(11, 2, "s2n"),
   "palco-norte-occidental|tribuna-sur-occidental":   makeWestLoopRoute(11, 3, "n2s"),
   "tribuna-sur-occidental|palco-norte-occidental":   makeWestLoopRoute(11, 3, "s2n"),
+
+  // ── General Norte Occidental (P9) ↔ Sur Occidental {P1, P2, P3} ──
+  //    Enlace vertical interno hasta la Puerta 9W → H. Vans Risn → La Esperanza.
+  "general-norte-occidental|plazoleta":              makeWestLoopRoute(9, 1, "n2s"),
+  "plazoleta|general-norte-occidental":              makeWestLoopRoute(9, 1, "s2n"),
+  "general-norte-occidental|palco-sur-occidental":   makeWestLoopRoute(9, 2, "n2s"),
+  "palco-sur-occidental|general-norte-occidental":   makeWestLoopRoute(9, 2, "s2n"),
+  "general-norte-occidental|tribuna-sur-occidental": makeWestLoopRoute(9, 3, "n2s"),
+  "tribuna-sur-occidental|general-norte-occidental": makeWestLoopRoute(9, 3, "s2n"),
 }
 
 // ============================================================
