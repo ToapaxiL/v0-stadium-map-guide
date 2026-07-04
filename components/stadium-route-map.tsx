@@ -28,6 +28,29 @@ const PERIMETER: { gate: number; sub?: string; label?: string; x: number; y: num
 
 const N = PERIMETER.length // 13
 
+// ─── Puntos clave del cruce Norte Occidental (P9 Occ ↔ P10) ───
+// La conexión entre General Norte Occidental (P9, índice 12) y Tribuna Norte
+// Occidental (P10, índice 11) NO es una diagonal: se sale por la Puerta 9W y se
+// entra por la Puerta 10-11 (calle H. Vans Risn). Estos waypoints se inyectan
+// SIEMPRE que cualquier ruta cruce esta arista, para que la línea siga el
+// recorrido en escalón real en lugar de cortar de P9 a P10 en línea recta.
+const NW_P9_OCC_IDX = 12
+const NW_P10_IDX = 11
+const NW_KEY_POINTS: { x: number; y: number }[] = [
+  { x: 275.995, y: 348.188 }, // giro interior bajo General Norte Occidental
+  { x: 226.996, y: 348.188 }, // Puerta 9W (salida a la calle)
+  { x: 226.996, y: 371.054 }, // Puerta 10-11 (sobre la calle)
+  { x: 275.995, y: 371.052 }, // giro de la calle hacia la Puerta 10
+]
+
+// Waypoints intermedios (si los hay) para la arista entre dos índices
+// consecutivos del perímetro. Hoy solo aplica al cruce Norte Occidental.
+function edgeDetour(a: number, b: number): { x: number; y: number }[] {
+  if (a === NW_P9_OCC_IDX && b === NW_P10_IDX) return NW_KEY_POINTS
+  if (a === NW_P10_IDX && b === NW_P9_OCC_IDX) return [...NW_KEY_POINTS].reverse()
+  return []
+}
+
 // Centro geométrico del anillo de puertas. Las etiquetas rojas (P6, P7, …) se
 // desplazan hacia este centro para que queden SIEMPRE dentro del estadio y
 // nunca encima de los textos de las secciones (que están por fuera del anillo).
@@ -183,7 +206,16 @@ export function StadiumRouteMap({ result }: Props) {
     // seguir SIEMPRE los 13 puntos del contorno y nunca cortar por el estadio.
     const traceIndices = traceToIndices(result.gateTrace ?? [], iA, iB)
     const routeIndices = expandAlongPerimeter(traceIndices)
-    const pts = routeIndices.map(i => PERIMETER[i])
+    // Construye la polilínea siguiendo el anillo, pero inyectando los puntos
+    // clave del cruce Norte Occidental (Puerta 9W / 10-11) para que ese tramo
+    // nunca se dibuje como una diagonal directa entre P9 y P10.
+    const pts: { x: number; y: number }[] = []
+    for (let k = 0; k < routeIndices.length; k++) {
+      if (k > 0) {
+        for (const wp of edgeDetour(routeIndices[k - 1], routeIndices[k])) pts.push(wp)
+      }
+      pts.push(PERIMETER[routeIndices[k]])
+    }
 
     const pathD = toD(pts)
     const len   = pathLength(pts)
