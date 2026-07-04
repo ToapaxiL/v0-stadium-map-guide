@@ -16,8 +16,8 @@ const PERIMETER: { gate: number; sub?: string; label?: string; x: number; y: num
   { gate: 7,               x: 409.189, y: 153.438 }, // 2  P7           (arriba-izq)
   { gate: 6,               x: 537.972, y: 153.438 }, // 3  P6           (arriba-der)
   { gate: 5,               x: 599.981, y: 170.31  }, // 4  P5           (esq. noreste)
-  { gate: 4,  sub: "alta", x: 670.291, y: 224.819 }, // 5  P4 Alta      (der-arriba)
-  { gate: 4,  sub: "baja", x: 670.291, y: 294.188 }, // 6  P4 Baja      (der-abajo)
+  { gate: 4,  sub: "baja", x: 670.292, y: 229.997 }, // 5  P4 Baja      (der-arriba)
+  { gate: 4,  sub: "alta", x: 670.291, y: 289.996 }, // 6  P4 Alta      (der-abajo)
   { gate: 3,               x: 599.981, y: 348.188 }, // 7  P3           (esq. sureste)
   { gate: 2,               x: 537.973, y: 363.356 }, // 8  P2           (abajo-der)
   { gate: 1,  label: "Plazoleta", x: 474.215, y: 388.346 }, // 9  PLAZOLETA - Puerta 1 (abajo-centro)
@@ -27,6 +27,29 @@ const PERIMETER: { gate: number; sub?: string; label?: string; x: number; y: num
 ]
 
 const N = PERIMETER.length // 13
+
+// ─── Puntos clave del cruce Norte Occidental (P9 Occ ↔ P10) ───
+// La conexión entre General Norte Occidental (P9, índice 12) y Tribuna Norte
+// Occidental (P10, índice 11) NO es una diagonal: se sale por la Puerta 9W y se
+// entra por la Puerta 10-11 (calle H. Vans Risn). Estos waypoints se inyectan
+// SIEMPRE que cualquier ruta cruce esta arista, para que la línea siga el
+// recorrido en escalón real en lugar de cortar de P9 a P10 en línea recta.
+const NW_P9_OCC_IDX = 12
+const NW_P10_IDX = 11
+const NW_KEY_POINTS: { x: number; y: number }[] = [
+  { x: 275.995, y: 348.188 }, // giro interior bajo General Norte Occidental
+  { x: 226.996, y: 348.188 }, // Puerta 9W (salida a la calle)
+  { x: 226.996, y: 371.054 }, // Puerta 10-11 (sobre la calle)
+  { x: 275.995, y: 371.052 }, // giro de la calle hacia la Puerta 10
+]
+
+// Waypoints intermedios (si los hay) para la arista entre dos índices
+// consecutivos del perímetro. Hoy solo aplica al cruce Norte Occidental.
+function edgeDetour(a: number, b: number): { x: number; y: number }[] {
+  if (a === NW_P9_OCC_IDX && b === NW_P10_IDX) return NW_KEY_POINTS
+  if (a === NW_P10_IDX && b === NW_P9_OCC_IDX) return [...NW_KEY_POINTS].reverse()
+  return []
+}
 
 // Centro geométrico del anillo de puertas. Las etiquetas rojas (P6, P7, …) se
 // desplazan hacia este centro para que queden SIEMPRE dentro del estadio y
@@ -54,8 +77,8 @@ function sectionToIndex(section: string): number {
     "palco-norte-oriental":     2,  // P7
     "palco-sur-oriental":       3,  // P6
     "tribuna-sur-oriental":     4,  // P5
-    "general-sur-alta":         5,  // P4 Alta
-    "general-sur-baja":         6,  // P4 Baja
+    "general-sur-baja":         5,  // P4 Baja (arriba)
+    "general-sur-alta":         6,  // P4 Alta (abajo)
     "tribuna-sur-occidental":   7,  // P3
     "palco-sur-occidental":     8,  // P2
     "plazoleta":                9,  // Plazoleta (nodo intermedio entre P2 y P11)
@@ -162,6 +185,19 @@ export function StadiumRouteMap({ result }: Props) {
   const data = useMemo(() => {
     const iA = sectionToIndex(result.from)
     const iB = sectionToIndex(result.to)
+
+    // ── Ruta ESPECIAL: polilínea exterior explícita (calle) ──
+    // Cuando la ruta trae specialPath, se dibuja tal cual y los marcadores
+    // A/B se sitúan en sus extremos. No se usa el anillo perimetral.
+    if (result.specialPath && result.specialPath.length >= 2) {
+      const sp = result.specialPath
+      const posA = { ...sp[0], gate: PERIMETER[iA].gate }
+      const posB = { ...sp[sp.length - 1], gate: PERIMETER[iB].gate }
+      const pathD = toD(sp)
+      const len   = pathLength(sp)
+      return { iA, iB, posA, posB, pathD, len }
+    }
+
     const posA = PERIMETER[iA]
     const posB = PERIMETER[iB]
 
@@ -170,7 +206,16 @@ export function StadiumRouteMap({ result }: Props) {
     // seguir SIEMPRE los 13 puntos del contorno y nunca cortar por el estadio.
     const traceIndices = traceToIndices(result.gateTrace ?? [], iA, iB)
     const routeIndices = expandAlongPerimeter(traceIndices)
-    const pts = routeIndices.map(i => PERIMETER[i])
+    // Construye la polilínea siguiendo el anillo, pero inyectando los puntos
+    // clave del cruce Norte Occidental (Puerta 9W / 10-11) para que ese tramo
+    // nunca se dibuje como una diagonal directa entre P9 y P10.
+    const pts: { x: number; y: number }[] = []
+    for (let k = 0; k < routeIndices.length; k++) {
+      if (k > 0) {
+        for (const wp of edgeDetour(routeIndices[k - 1], routeIndices[k])) pts.push(wp)
+      }
+      pts.push(PERIMETER[routeIndices[k]])
+    }
 
     const pathD = toD(pts)
     const len   = pathLength(pts)
