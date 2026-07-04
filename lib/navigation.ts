@@ -613,22 +613,28 @@ function makeEastCorridorRoute(t1: number, east: number, dir: "out" | "in"): Spe
       steps.push({ type: "external", instruction: es ? "Camina por Calle Cacica Quilago" : "Walk along Calle Cacica Quilago", icon: "walk" })
       steps.push({ type: "external", instruction: es ? "Ingresa por la Puerta 4 LOCAL a General Sur Alta" : "Enter through Gate 4 LOCAL into South High General", icon: "enter" })
       steps.push({ type: "internal", instruction: es
+        ? "Baja las escaleras internamente de General Sur Alta a General Sur Baja"
+        : "Go down the stairs internally from South High General to South Low General", icon: "walk" })
+      steps.push({ type: "internal", instruction: es
         ? (east >= 7
-            ? `Continúa internamente por General Sur (Alta y Baja) y el Sur Oriental hasta ${nE.es}`
-            : `Continúa internamente por General Sur (Alta y Baja) hasta ${nE.es}`)
+            ? `Continúa internamente por General Sur Baja y el Sur Oriental hasta ${nE.es}`
+            : `Continúa internamente por General Sur Baja hasta ${nE.es}`)
         : (east >= 7
-            ? `Continue internally through South General (High and Low) and the South East to ${nE.en}`
-            : `Continue internally through South General (High and Low) to ${nE.en}`), icon: "walk" })
+            ? `Continue internally through South Low General and the South East to ${nE.en}`
+            : `Continue internally through South Low General to ${nE.en}`), icon: "walk" })
       steps.push({ type: "arrive", instruction: es ? nE.es : nE.en, detail: `${gw} ${nE.gate}`, icon: "flag" })
     } else {
       steps.push({ type: "start", instruction: es ? nE.es : nE.en, detail: `${gw} ${nE.gate}`, icon: "pin" })
       steps.push({ type: "internal", instruction: es
         ? (east >= 7
-            ? "Camina internamente por el Sur Oriental y General Sur (Baja y Alta) hasta la Puerta 4 LOCAL"
-            : "Camina internamente por General Sur (Baja y Alta) hasta la Puerta 4 LOCAL")
+            ? "Camina internamente por el Sur Oriental hasta General Sur Baja"
+            : "Camina internamente hasta General Sur Baja")
         : (east >= 7
-            ? "Walk internally through the South East and South General (Low and High) to Gate 4 LOCAL"
-            : "Walk internally through South General (Low and High) to Gate 4 LOCAL"), icon: "walk" })
+            ? "Walk internally through the South East to South Low General"
+            : "Walk internally to South Low General"), icon: "walk" })
+      steps.push({ type: "internal", instruction: es
+        ? "Sube las escaleras internamente de General Sur Baja a General Sur Alta"
+        : "Go up the stairs internally from South Low General to South High General", icon: "walk" })
       steps.push({ type: "external", instruction: es ? "Sal por la Puerta 4 LOCAL" : "Exit through Gate 4 LOCAL", icon: "exit" })
       steps.push({ type: "external", instruction: es ? "Camina por Calle Cacica Quilago" : "Walk along Calle Cacica Quilago", icon: "walk" })
       steps.push({ type: "external", instruction: es ? "Ingresa por la Puerta 2-3" : "Enter through Gate 2-3", icon: "enter" })
