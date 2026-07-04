@@ -16,8 +16,8 @@ const PERIMETER: { gate: number; sub?: string; label?: string; x: number; y: num
   { gate: 7,               x: 409.189, y: 153.438 }, // 2  P7           (arriba-izq)
   { gate: 6,               x: 537.972, y: 153.438 }, // 3  P6           (arriba-der)
   { gate: 5,               x: 599.981, y: 170.31  }, // 4  P5           (esq. noreste)
-  { gate: 4,  sub: "alta", x: 670.291, y: 224.819 }, // 5  P4 Alta      (der-arriba)
-  { gate: 4,  sub: "baja", x: 670.291, y: 294.188 }, // 6  P4 Baja      (der-abajo)
+  { gate: 4,  sub: "alta", x: 670.292, y: 229.997 }, // 5  P4 Alta      (der-arriba)
+  { gate: 4,  sub: "baja", x: 670.291, y: 289.996 }, // 6  P4 Baja      (der-abajo)
   { gate: 3,               x: 599.981, y: 348.188 }, // 7  P3           (esq. sureste)
   { gate: 2,               x: 537.973, y: 363.356 }, // 8  P2           (abajo-der)
   { gate: 1,  label: "Plazoleta", x: 474.215, y: 388.346 }, // 9  PLAZOLETA - Puerta 1 (abajo-centro)
@@ -162,6 +162,19 @@ export function StadiumRouteMap({ result }: Props) {
   const data = useMemo(() => {
     const iA = sectionToIndex(result.from)
     const iB = sectionToIndex(result.to)
+
+    // ── Ruta ESPECIAL: polilínea exterior explícita (calle) ──
+    // Cuando la ruta trae specialPath, se dibuja tal cual y los marcadores
+    // A/B se sitúan en sus extremos. No se usa el anillo perimetral.
+    if (result.specialPath && result.specialPath.length >= 2) {
+      const sp = result.specialPath
+      const posA = { ...sp[0], gate: PERIMETER[iA].gate }
+      const posB = { ...sp[sp.length - 1], gate: PERIMETER[iB].gate }
+      const pathD = toD(sp)
+      const len   = pathLength(sp)
+      return { iA, iB, posA, posB, pathD, len }
+    }
+
     const posA = PERIMETER[iA]
     const posB = PERIMETER[iB]
 

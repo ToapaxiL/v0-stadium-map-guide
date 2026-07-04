@@ -30,6 +30,14 @@ export interface RouteResult {
   usesExterior: boolean
   /** Secuencia ordenada de puertas que recorre la ruta (fuente de verdad para el SVG) */
   gateTrace: number[]
+  /**
+   * Polilínea EXACTA en coordenadas del SVG (viewBox 850.394×566.929) para
+   * rutas especiales que NO siguen el anillo perimetral (p. ej. recorridos
+   * exteriores por la calle). Si está presente, el mapa la dibuja tal cual.
+   */
+  specialPath?: { x: number; y: number }[]
+  /** Distancia EXACTA en metros para rutas especiales (sobrescribe el cálculo por anillo). */
+  specialMeters?: number
 }
 
 const SECTION_GATES: Record<string, number> = {
@@ -216,9 +224,127 @@ function walkInternal(
 }
 
 // ============================================================
+// RUTAS ESPECIALES (recorridos exteriores predefinidos)
+// ------------------------------------------------------------
+// Algunas parejas origen→destino no siguen el anillo perimetral, sino un
+// recorrido exterior concreto por la calle. Aquí se definen a mano: sus pasos
+// y su polilínea EXACTA en coordenadas del SVG. Tienen prioridad sobre el motor.
+//
+//  RUTA 1: Tribuna Sur Occidental (P3) → General Sur Alta (P4)
+//          Salida al exterior por Puerta 2-3, subida por Calle Cacica Quilago
+//          e ingreso por la Puerta 4 LOCAL.
+// ============================================================
+
+// Nodos del nuevo SVG usados por las rutas especiales (coords viewBox).
+const PT = {
+  p3:            { x: 599.981, y: 348.188 }, // Tribuna Sur Occidental (P3)
+  p23Exterior:   { x: 666.981, y: 383.477 }, // salida exterior junto a Puerta 2-3
+  calleAbajo:    { x: 786.981, y: 383.476 }, // Calle Cacica Quilago, esquina inferior
+  calleCorner4:  { x: 786.981, y: 229.997 }, // giro a la altura de la Puerta 4 LOCAL
+  p4Local:       { x: 746.709, y: 229.997 }, // ingreso Puerta 4 LOCAL
+  p4AltaSeat:    { x: 670.291, y: 289.996 }, // General Sur Alta (bloque inferior, P4)
+}
+
+// Longitud de una polilínea (unidades SVG).
+function polyLength(pts: { x: number; y: number }[]): number {
+  let len = 0
+  for (let i = 1; i < pts.length; i++) {
+    len += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y)
+  }
+  return len
+}
+
+// Calibración anillo: ~91 unidades SVG entre puertas contiguas ≈ 100 m.
+const METERS_PER_SVG_UNIT = 100 / 91
+
+function metersOf(pts: { x: number; y: number }[]): number {
+  return Math.round((polyLength(pts) * METERS_PER_SVG_UNIT) / 10) * 10
+}
+
+type SpecialRouteBuilder = (lang: "es" | "en") => Omit<RouteResult, "from" | "to">
+
+const SPECIAL_ROUTES: Record<string, SpecialRouteBuilder> = {
+  // ── RUTA 1: P3 → P4 (General Sur Alta) por el exterior ──
+  "tribuna-sur-occidental|general-sur-alta": (lang) => {
+    const path = [
+      PT.p3, PT.p23Exterior, PT.calleAbajo, PT.calleCorner4, PT.p4LocalAlta, PT.p4Alta,
+    ]
+    const steps: RouteStep[] =
+      lang === "es"
+        ? [
+            { type: "start",    instruction: "Tribuna Sur Occidental", detail: "Puerta 3", icon: "pin" },
+            { type: "external", instruction: "Sal al exterior", icon: "exit" },
+            { type: "external", instruction: "Dirígete a la Puerta 2-3", icon: "walk" },
+            { type: "external", instruction: "Camina por Calle Cacica Quilago", icon: "walk" },
+            { type: "external", instruction: "Continúa siguiendo la línea roja", icon: "walk" },
+            { type: "external", instruction: "Ingresa por la Puerta 4 LOCAL", icon: "enter" },
+            { type: "arrive",   instruction: "General Sur Alta", detail: "Puerta 4", icon: "flag" },
+          ]
+        : [
+            { type: "start",    instruction: "South West Stand", detail: "Gate 3", icon: "pin" },
+            { type: "external", instruction: "Exit to the exterior", icon: "exit" },
+            { type: "external", instruction: "Head to Gate 2-3", icon: "walk" },
+            { type: "external", instruction: "Walk along Calle Cacica Quilago", icon: "walk" },
+            { type: "external", instruction: "Continue following the red line", icon: "walk" },
+            { type: "external", instruction: "Enter through Gate 4 LOCAL", icon: "enter" },
+            { type: "arrive",   instruction: "South High General", detail: "Gate 4", icon: "flag" },
+          ]
+    return {
+      steps,
+      totalSteps: steps.length,
+      usesExterior: true,
+      gateTrace: [3, 4],
+      specialPath: path,
+      specialMeters: metersOf(path),
+    }
+  },
+
+  // ── RUTA 1 (inversa): P4 (General Sur Alta) → P3 ──
+  "general-sur-alta|tribuna-sur-occidental": (lang) => {
+    const path = [
+      PT.p4Alta, PT.p4LocalAlta, PT.calleCorner4, PT.calleAbajo, PT.p23Exterior, PT.p3,
+    ]
+    const steps: RouteStep[] =
+      lang === "es"
+        ? [
+            { type: "start",    instruction: "General Sur Alta", detail: "Puerta 4", icon: "pin" },
+            { type: "external", instruction: "Sal al exterior por la Puerta 4 LOCAL", icon: "exit" },
+            { type: "external", instruction: "Camina por Calle Cacica Quilago", icon: "walk" },
+            { type: "external", instruction: "Continúa siguiendo la línea roja", icon: "walk" },
+            { type: "external", instruction: "Dirígete a la Puerta 2-3", icon: "walk" },
+            { type: "external", instruction: "Ingresa por la Puerta 3", icon: "enter" },
+            { type: "arrive",   instruction: "Tribuna Sur Occidental", detail: "Puerta 3", icon: "flag" },
+          ]
+        : [
+            { type: "start",    instruction: "South High General", detail: "Gate 4", icon: "pin" },
+            { type: "external", instruction: "Exit to the exterior through Gate 4 LOCAL", icon: "exit" },
+            { type: "external", instruction: "Walk along Calle Cacica Quilago", icon: "walk" },
+            { type: "external", instruction: "Continue following the red line", icon: "walk" },
+            { type: "external", instruction: "Head to Gate 2-3", icon: "walk" },
+            { type: "external", instruction: "Enter through Gate 3", icon: "enter" },
+            { type: "arrive",   instruction: "South West Stand", detail: "Gate 3", icon: "flag" },
+          ]
+    return {
+      steps,
+      totalSteps: steps.length,
+      usesExterior: true,
+      gateTrace: [4, 3],
+      specialPath: path,
+      specialMeters: metersOf(path),
+    }
+  },
+}
+
+// ============================================================
 // Algoritmo principal
 // ============================================================
 export function calculateRoute(fromId: string, toId: string, lang: "es" | "en" = "es"): RouteResult {
+  // Rutas especiales predefinidas (tienen prioridad sobre el motor de anillo).
+  const special = SPECIAL_ROUTES[`${fromId}|${toId}`]
+  if (special) {
+    return { from: fromId, to: toId, ...special(lang) }
+  }
+
   const fromGate = SECTION_GATES[fromId]
   const toGate   = SECTION_GATES[toId]
   const fromName = getSectionName(fromId, lang)

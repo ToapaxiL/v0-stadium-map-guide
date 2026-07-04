@@ -116,6 +116,8 @@ function expandAlongPerimeter(indices: number[]): number[] {
 
 /** Distancia EXACTA de la ruta en metros. */
 export function routeDistanceMeters(result: RouteResult): number {
+  // Rutas especiales (recorridos exteriores) traen su propia distancia exacta.
+  if (typeof result.specialMeters === "number") return result.specialMeters
   const iA = SECTION_INDEX[result.from] ?? 0
   const iB = SECTION_INDEX[result.to] ?? 0
   const idx = expandAlongPerimeter(traceToIndices(result.gateTrace ?? [], iA, iB))
