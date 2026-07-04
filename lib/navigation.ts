@@ -244,6 +244,14 @@ const PT = {
   p4Local:       { x: 746.709, y: 229.997 }, // ingreso Puerta 4 LOCAL
   p4Junction:    { x: 747.12,  y: 289.997 }, // giro interior a la altura de General Sur Alta
   p4AltaSeat:    { x: 670.291, y: 289.996 }, // General Sur Alta (P4)
+
+  // ── Zona Norte Occidental (RUTA 2), calle Hermensz Van Risn Rembrandt ──
+  p9OccSeat:     { x: 275.995, y: 294.187 }, // General Norte Occidental (P9 Occ)
+  p9OccJunction: { x: 275.995, y: 348.188 }, // giro interior bajo General Norte Occidental
+  p9wExterior:   { x: 226.996, y: 348.188 }, // salida Puerta 9W (a la calle)
+  p1011Exterior: { x: 226.996, y: 371.054 }, // Puerta 10-11 (sobre la calle)
+  p1011Corner:   { x: 275.995, y: 371.052 }, // giro de la calle hacia la Puerta 10
+  p10Seat:       { x: 345.981, y: 348.188 }, // Tribuna Norte Occidental (P10)
 }
 
 // Longitud de una polilínea (unidades SVG).
@@ -326,6 +334,74 @@ const SPECIAL_ROUTES: Record<string, SpecialRouteBuilder> = {
       totalSteps: steps.length,
       usesExterior: true,
       gateTrace: [4, 3],
+      specialPath: path,
+      specialMeters: metersOf(path),
+    }
+  },
+
+  // ── RUTA 2: General Norte Occidental (P9) → Tribuna Norte Occidental (P10) ──
+  //    Salida por Puerta 9W, calle Hermensz Van Risn Rembrandt e ingreso por
+  //    la Puerta 10-11.
+  "general-norte-occidental|tribuna-norte-occidental": (lang) => {
+    const path = [
+      PT.p9OccSeat, PT.p9OccJunction, PT.p9wExterior, PT.p1011Exterior, PT.p1011Corner, PT.p10Seat,
+    ]
+    const steps: RouteStep[] =
+      lang === "es"
+        ? [
+            { type: "start",    instruction: "General Norte Occidental", detail: "Puerta 9", icon: "pin" },
+            { type: "external", instruction: "Sal por la Puerta 9W", icon: "exit" },
+            { type: "external", instruction: "Camina por H. Vans Risn", icon: "walk" },
+            { type: "external", instruction: "Llega a la Puerta 10-11", icon: "walk" },
+            { type: "external", instruction: "Ingresa a Tribuna Norte Occidental (Puerta 10)", icon: "enter" },
+            { type: "arrive",   instruction: "Tribuna Norte Occidental", detail: "Puerta 10", icon: "flag" },
+          ]
+        : [
+            { type: "start",    instruction: "North West General", detail: "Gate 9", icon: "pin" },
+            { type: "external", instruction: "Exit through Gate 9W", icon: "exit" },
+            { type: "external", instruction: "Walk along H. Vans Risn", icon: "walk" },
+            { type: "external", instruction: "Reach Gate 10-11", icon: "walk" },
+            { type: "external", instruction: "Enter North West Stand (Gate 10)", icon: "enter" },
+            { type: "arrive",   instruction: "North West Stand", detail: "Gate 10", icon: "flag" },
+          ]
+    return {
+      steps,
+      totalSteps: steps.length,
+      usesExterior: true,
+      gateTrace: [9, 10],
+      specialPath: path,
+      specialMeters: metersOf(path),
+    }
+  },
+
+  // ── RUTA 2 (inversa): Tribuna Norte Occidental (P10) → General Norte Occidental (P9) ──
+  "tribuna-norte-occidental|general-norte-occidental": (lang) => {
+    const path = [
+      PT.p10Seat, PT.p1011Corner, PT.p1011Exterior, PT.p9wExterior, PT.p9OccJunction, PT.p9OccSeat,
+    ]
+    const steps: RouteStep[] =
+      lang === "es"
+        ? [
+            { type: "start",    instruction: "Tribuna Norte Occidental", detail: "Puerta 10", icon: "pin" },
+            { type: "external", instruction: "Sal por la Puerta 10-11", icon: "exit" },
+            { type: "external", instruction: "Camina por H. Vans Risn", icon: "walk" },
+            { type: "external", instruction: "Llega a la Puerta 9W", icon: "walk" },
+            { type: "external", instruction: "Ingresa a General Norte Occidental (Puerta 9)", icon: "enter" },
+            { type: "arrive",   instruction: "General Norte Occidental", detail: "Puerta 9", icon: "flag" },
+          ]
+        : [
+            { type: "start",    instruction: "North West Stand", detail: "Gate 10", icon: "pin" },
+            { type: "external", instruction: "Exit through Gate 10-11", icon: "exit" },
+            { type: "external", instruction: "Walk along H. Vans Risn", icon: "walk" },
+            { type: "external", instruction: "Reach Gate 9W", icon: "walk" },
+            { type: "external", instruction: "Enter North West General (Gate 9)", icon: "enter" },
+            { type: "arrive",   instruction: "North West General", detail: "Gate 9", icon: "flag" },
+          ]
+    return {
+      steps,
+      totalSteps: steps.length,
+      usesExterior: true,
+      gateTrace: [10, 9],
       specialPath: path,
       specialMeters: metersOf(path),
     }

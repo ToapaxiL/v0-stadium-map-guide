@@ -16,8 +16,8 @@ const PERIMETER: { gate: number; sub?: string; label?: string; x: number; y: num
   { gate: 7,               x: 409.189, y: 153.438 }, // 2  P7           (arriba-izq)
   { gate: 6,               x: 537.972, y: 153.438 }, // 3  P6           (arriba-der)
   { gate: 5,               x: 599.981, y: 170.31  }, // 4  P5           (esq. noreste)
-  { gate: 4,  sub: "alta", x: 670.292, y: 229.997 }, // 5  P4 Alta      (der-arriba)
-  { gate: 4,  sub: "baja", x: 670.291, y: 289.996 }, // 6  P4 Baja      (der-abajo)
+  { gate: 4,  sub: "baja", x: 670.292, y: 229.997 }, // 5  P4 Baja      (der-arriba)
+  { gate: 4,  sub: "alta", x: 670.291, y: 289.996 }, // 6  P4 Alta      (der-abajo)
   { gate: 3,               x: 599.981, y: 348.188 }, // 7  P3           (esq. sureste)
   { gate: 2,               x: 537.973, y: 363.356 }, // 8  P2           (abajo-der)
   { gate: 1,  label: "Plazoleta", x: 474.215, y: 388.346 }, // 9  PLAZOLETA - Puerta 1 (abajo-centro)
@@ -54,8 +54,8 @@ function sectionToIndex(section: string): number {
     "palco-norte-oriental":     2,  // P7
     "palco-sur-oriental":       3,  // P6
     "tribuna-sur-oriental":     4,  // P5
-    "general-sur-alta":         5,  // P4 Alta
-    "general-sur-baja":         6,  // P4 Baja
+    "general-sur-baja":         5,  // P4 Baja (arriba)
+    "general-sur-alta":         6,  // P4 Alta (abajo)
     "tribuna-sur-occidental":   7,  // P3
     "palco-sur-occidental":     8,  // P2
     "plazoleta":                9,  // Plazoleta (nodo intermedio entre P2 y P11)
