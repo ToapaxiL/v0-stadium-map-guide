@@ -263,6 +263,11 @@ const PT = {
   laEspP1:       { x: 531.823, y: 486.546 }, // La Esperanza a la altura de la Puerta 1
   p1TurnUp:      { x: 531.822, y: 418.299 }, // giro hacia arriba en la Puerta 1
   plazoletaP1:   { x: 474.215, y: 388.346 }, // Plazoleta (Puerta 1) — destino real
+
+  // Asientos del bloque Sur/Norte Occidental (para las rutas del bucle oeste).
+  p11Seat:       { x: 409.190, y: 363.356 }, // Palco Norte Occidental (P11)
+  p2Seat:        { x: 537.973, y: 363.356 }, // Palco Sur Occidental (P2)
+  p3Seat:        { x: 599.981, y: 348.188 }, // Tribuna Sur Occidental (P3)
 }
 
 // Longitud de una polilínea (unidades SVG).
@@ -282,6 +287,93 @@ function metersOf(pts: { x: number; y: number }[]): number {
 }
 
 type SpecialRouteBuilder = (lang: "es" | "en") => Omit<RouteResult, "from" | "to">
+
+// ============================================================
+// Bucle Occidental (La Esperanza + H. Vans Risn)
+// ------------------------------------------------------------
+// Anulado el paso interno P11 ✖ Plazoleta, la ÚNICA conexión entre el Norte
+// Occidental {P10, P11} y el bloque Sur Occidental {Plazoleta(P1), P2, P3} es
+// el recorrido exterior por la Puerta 10-11 → H. Vans Risn → La Esperanza →
+// Puerta 1. Para que el MAPA y las INDICACIONES siempre coincidan, todas estas
+// combinaciones se generan como rutas especiales con su polilínea exacta.
+// ============================================================
+const WEST_LOOP_NAMES: Record<number, { es: string; en: string; gate: string }> = {
+  10: { es: "Tribuna Norte Occidental", en: "North West Stand", gate: "10" },
+  11: { es: "Palco Norte Occidental",   en: "North West Box",   gate: "11" },
+  1:  { es: "Plazoleta",                en: "Plaza",            gate: "1"  },
+  2:  { es: "Palco Sur Occidental",     en: "South West Box",   gate: "2"  },
+  3:  { es: "Tribuna Sur Occidental",   en: "South West Stand", gate: "3"  },
+}
+
+// Tramo exterior compartido entre la Puerta 10-11 y la Puerta 1 (Plazoleta).
+const WEST_LOOP_MID = [
+  PT.p1011Corner, PT.p1011Exterior, PT.p1011Down,
+  PT.laEspNWJog, PT.laEspNWCorner, PT.laEspP1, PT.p1TurnUp,
+]
+
+type Pt = { x: number; y: number }
+
+// Cola interior del lado NORTE (asiento → Puerta 10-11).
+function northTail(gate: number): Pt[] {
+  return gate === 11 ? [PT.p11Seat, PT.p10Seat] : [PT.p10Seat]
+}
+// Cola interior del lado SUR (Plazoleta → asiento).
+function southTail(gate: number): Pt[] {
+  if (gate === 1) return [PT.plazoletaP1]
+  if (gate === 2) return [PT.plazoletaP1, PT.p2Seat]
+  return [PT.plazoletaP1, PT.p2Seat, PT.p3Seat] // P3
+}
+
+// Construye una ruta del bucle occidental entre un lado NORTE (10/11) y un lado
+// SUR (1/2/3), en cualquier sentido, con pasos que reflejan la polilínea.
+function makeWestLoopRoute(north: number, south: number, dir: "n2s" | "s2n"): SpecialRouteBuilder {
+  return (lang) => {
+    const forward = [...northTail(north), ...WEST_LOOP_MID, ...southTail(south)]
+    const path = dir === "n2s" ? forward : [...forward].reverse()
+
+    const nName = WEST_LOOP_NAMES[north]
+    const sName = WEST_LOOP_NAMES[south]
+    const es = lang === "es"
+    const steps: RouteStep[] = []
+
+    if (dir === "n2s") {
+      steps.push({ type: "start", instruction: es ? nName.es : nName.en, detail: `${es ? "Puerta" : "Gate"} ${nName.gate}`, icon: "pin" })
+      if (north === 11)
+        steps.push({ type: "internal", instruction: es ? "Camina hasta la Puerta 10-11" : "Walk to Gate 10-11", icon: "walk" })
+      steps.push({ type: "external", instruction: es ? "Sal por la Puerta 10-11" : "Exit through Gate 10-11", icon: "exit" })
+      steps.push({ type: "external", instruction: es ? "Camina por H. Vans Risn siguiendo la ruta señalizada" : "Walk along H. Vans Risn following the marked route", icon: "walk" })
+      steps.push({ type: "external", instruction: es ? "Gira a la derecha hacia la Puerta 1" : "Turn right toward Gate 1", icon: "walk" })
+      steps.push({ type: "external", instruction: es ? "Continúa por La Esperanza siguiendo la ruta señalizada" : "Continue along La Esperanza following the marked route", icon: "walk" })
+      if (south === 1) {
+        steps.push({ type: "arrive", instruction: es ? sName.es : sName.en, detail: `${es ? "Puerta" : "Gate"} ${sName.gate}`, icon: "flag" })
+      } else {
+        steps.push({ type: "external", instruction: es ? "Ingresa por la Puerta 1" : "Enter through Gate 1", icon: "enter" })
+        steps.push({ type: "internal", instruction: es ? `Camina hasta la Puerta ${sName.gate}` : `Walk to Gate ${sName.gate}`, icon: "walk" })
+        steps.push({ type: "arrive", instruction: es ? sName.es : sName.en, detail: `${es ? "Puerta" : "Gate"} ${sName.gate}`, icon: "flag" })
+      }
+    } else {
+      steps.push({ type: "start", instruction: es ? sName.es : sName.en, detail: `${es ? "Puerta" : "Gate"} ${sName.gate}`, icon: "pin" })
+      if (south !== 1)
+        steps.push({ type: "internal", instruction: es ? "Camina hasta la Puerta 1" : "Walk to Gate 1", icon: "walk" })
+      steps.push({ type: "external", instruction: es ? "Sal por la Puerta 1" : "Exit through Gate 1", icon: "exit" })
+      steps.push({ type: "external", instruction: es ? "Camina por La Esperanza siguiendo la ruta señalizada" : "Walk along La Esperanza following the marked route", icon: "walk" })
+      steps.push({ type: "external", instruction: es ? "Gira a la izquierda hacia H. Vans Risn" : "Turn left toward H. Vans Risn", icon: "walk" })
+      steps.push({ type: "external", instruction: es ? "Ingresa por la Puerta 10-11" : "Enter through Gate 10-11", icon: "enter" })
+      if (north === 11)
+        steps.push({ type: "internal", instruction: es ? "Camina hasta la Puerta 11" : "Walk to Gate 11", icon: "walk" })
+      steps.push({ type: "arrive", instruction: es ? nName.es : nName.en, detail: `${es ? "Puerta" : "Gate"} ${nName.gate}`, icon: "flag" })
+    }
+
+    return {
+      steps,
+      totalSteps: steps.length,
+      usesExterior: true,
+      gateTrace: dir === "n2s" ? [north, 10, 1, south] : [south, 1, 10, north],
+      specialPath: path,
+      specialMeters: metersOf(path),
+    }
+  }
+}
 
 const SPECIAL_ROUTES: Record<string, SpecialRouteBuilder> = {
   // ── RUTA 1: P3 → P4 (General Sur Alta) por el exterior ──
@@ -418,75 +510,22 @@ const SPECIAL_ROUTES: Record<string, SpecialRouteBuilder> = {
     }
   },
 
-  // ── RUTA 3: Tribuna Norte Occidental (P10) → Plazoleta (P1) ──
-  //    Salida por Puerta 10-11, bajada por H. Vans Risn, giro a la derecha en
-  //    la Puerta 1 y continuación por La Esperanza hasta la Plazoleta.
-  "tribuna-norte-occidental|plazoleta": (lang) => {
-    const path = [
-      PT.p10Seat, PT.p1011Corner, PT.p1011Exterior, PT.p1011Down,
-      PT.laEspNWJog, PT.laEspNWCorner, PT.laEspP1, PT.p1TurnUp, PT.plazoletaP1,
-    ]
-    const steps: RouteStep[] =
-      lang === "es"
-        ? [
-            { type: "start",    instruction: "Tribuna Norte Occidental", detail: "Puerta 10", icon: "pin" },
-            { type: "external", instruction: "Sal por la Puerta 10-11", icon: "exit" },
-            { type: "external", instruction: "Camina por H. Vans Risn siguiendo la ruta señalizada", icon: "walk" },
-            { type: "external", instruction: "Gira a la derecha hacia la Puerta 1", icon: "walk" },
-            { type: "external", instruction: "Continúa por La Esperanza siguiendo la ruta señalizada", icon: "walk" },
-            { type: "arrive",   instruction: "Plazoleta", detail: "Puerta 1", icon: "flag" },
-          ]
-        : [
-            { type: "start",    instruction: "North West Stand", detail: "Gate 10", icon: "pin" },
-            { type: "external", instruction: "Exit through Gate 10-11", icon: "exit" },
-            { type: "external", instruction: "Walk along H. Vans Risn following the marked route", icon: "walk" },
-            { type: "external", instruction: "Turn right toward Gate 1", icon: "walk" },
-            { type: "external", instruction: "Continue along La Esperanza following the marked route", icon: "walk" },
-            { type: "arrive",   instruction: "Plaza", detail: "Gate 1", icon: "flag" },
-          ]
-    return {
-      steps,
-      totalSteps: steps.length,
-      usesExterior: true,
-      gateTrace: [10, 1],
-      specialPath: path,
-      specialMeters: metersOf(path),
-    }
-  },
-
-  // ── RUTA 3 (inversa): Plazoleta (P1) → Tribuna Norte Occidental (P10) ──
-  "plazoleta|tribuna-norte-occidental": (lang) => {
-    const path = [
-      PT.plazoletaP1, PT.p1TurnUp, PT.laEspP1, PT.laEspNWCorner, PT.laEspNWJog,
-      PT.p1011Down, PT.p1011Exterior, PT.p1011Corner, PT.p10Seat,
-    ]
-    const steps: RouteStep[] =
-      lang === "es"
-        ? [
-            { type: "start",    instruction: "Plazoleta", detail: "Puerta 1", icon: "pin" },
-            { type: "external", instruction: "Sal por la Puerta 1", icon: "exit" },
-            { type: "external", instruction: "Camina por La Esperanza siguiendo la ruta señalizada", icon: "walk" },
-            { type: "external", instruction: "Gira a la izquierda hacia H. Vans Risn", icon: "walk" },
-            { type: "external", instruction: "Ingresa por la Puerta 10-11", icon: "enter" },
-            { type: "arrive",   instruction: "Tribuna Norte Occidental", detail: "Puerta 10", icon: "flag" },
-          ]
-        : [
-            { type: "start",    instruction: "Plaza", detail: "Gate 1", icon: "pin" },
-            { type: "external", instruction: "Exit through Gate 1", icon: "exit" },
-            { type: "external", instruction: "Walk along La Esperanza following the marked route", icon: "walk" },
-            { type: "external", instruction: "Turn left toward H. Vans Risn", icon: "walk" },
-            { type: "external", instruction: "Enter through Gate 10-11", icon: "enter" },
-            { type: "arrive",   instruction: "North West Stand", detail: "Gate 10", icon: "flag" },
-          ]
-    return {
-      steps,
-      totalSteps: steps.length,
-      usesExterior: true,
-      gateTrace: [1, 10],
-      specialPath: path,
-      specialMeters: metersOf(path),
-    }
-  },
+  // ── RUTA 3 y familia: Norte Occidental {P10, P11} ↔ Sur Occidental {P1, P2, P3} ──
+  //    Todas por el exterior (Puerta 10-11 → H. Vans Risn → La Esperanza →
+  //    Puerta 1). Generadas con makeWestLoopRoute para que mapa e indicaciones
+  //    coincidan siempre. Anulado el paso interno P11 ✖ Plazoleta.
+  "tribuna-norte-occidental|plazoleta":              makeWestLoopRoute(10, 1, "n2s"),
+  "plazoleta|tribuna-norte-occidental":              makeWestLoopRoute(10, 1, "s2n"),
+  "tribuna-norte-occidental|palco-sur-occidental":   makeWestLoopRoute(10, 2, "n2s"),
+  "palco-sur-occidental|tribuna-norte-occidental":   makeWestLoopRoute(10, 2, "s2n"),
+  "tribuna-norte-occidental|tribuna-sur-occidental": makeWestLoopRoute(10, 3, "n2s"),
+  "tribuna-sur-occidental|tribuna-norte-occidental": makeWestLoopRoute(10, 3, "s2n"),
+  "palco-norte-occidental|plazoleta":                makeWestLoopRoute(11, 1, "n2s"),
+  "plazoleta|palco-norte-occidental":                makeWestLoopRoute(11, 1, "s2n"),
+  "palco-norte-occidental|palco-sur-occidental":     makeWestLoopRoute(11, 2, "n2s"),
+  "palco-sur-occidental|palco-norte-occidental":     makeWestLoopRoute(11, 2, "s2n"),
+  "palco-norte-occidental|tribuna-sur-occidental":   makeWestLoopRoute(11, 3, "n2s"),
+  "tribuna-sur-occidental|palco-norte-occidental":   makeWestLoopRoute(11, 3, "s2n"),
 }
 
 // ============================================================
