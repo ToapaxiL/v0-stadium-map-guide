@@ -139,42 +139,13 @@ function walkInternal(
   const ti = tramo.indexOf(to)
   if (fi === -1 || ti === -1) return
   const t = T[lang]
-  const gw = lang === "es" ? "Puerta" : "Gate"
 
-  // ── Corte físico P8 ✖ P9 en TRAMO_2 (lado oriental ↔ General Norte) ──
-  // No existe pasillo interior entre P8 y P9: hay que salir por la Puerta 7-8
-  // al exterior, caminar por H. Vans Risn y entrar por la Puerta 9 (o viceversa).
-  if (tramo === TRAMO_2 && (from === 9 || to === 9)) {
-    const oriental = from === 9 ? to : from   // extremo en {5,6,7,8}
-    const emitOriental = (a: number, b: number) => {
-      if (a === b) return
-      const ai = TRAMO_2.indexOf(a)
-      const bi = TRAMO_2.indexOf(b)
-      const d = ai < bi ? 1 : -1
-      const m: number[] = []
-      for (let i = ai + d; i !== bi; i += d) m.push(TRAMO_2[i])
-      steps.push({
-        type: "internal",
-        instruction: t.walkCorridor,
-        detail: m.length > 0 ? t.passesByGate(m.map(String).join(`, ${gw} `)) : t.fromTo(a, b),
-        icon: "walk",
-      })
-    }
-    if (to === 9) {
-      // oriental → P9: camina interno hasta P8, sale por 7-8, Hermenz, entra por 9W
-      emitOriental(oriental, 8)
-      steps.push({ type: "external", instruction: t.exitGate("7-8"), icon: "exit" })
-      steps.push({ type: "external", instruction: t.walkStreet("H. Vans Risn"), icon: "walk" })
-      steps.push({ type: "external", instruction: t.enterGate("9W"), icon: "enter" })
-    } else {
-      // P9 → oriental: sale por 9W, Hermenz, entra por 7-8, camina interno hasta destino
-      steps.push({ type: "external", instruction: t.exitGate("9W"), icon: "exit" })
-      steps.push({ type: "external", instruction: t.walkStreet("H. Vans Risn"), icon: "walk" })
-      steps.push({ type: "external", instruction: t.enterGate("7-8"), icon: "enter" })
-      emitOriental(8, oriental)
-    }
-    return
-  }
+  // ── Acceso interno P8 ↔ P9 en TRAMO_2 ──
+  // Ahora existe un pasillo interior que conecta Tribuna Norte Oriental (P8) con
+  // General Norte Oriental (P9): ya NO es necesario salir por la Puerta 7-8. Con
+  // ello TODO el lado oriental [P5, P6, P7, P8, P9] queda conectado internamente,
+  // por lo que el recorrido genérico de abajo lo resuelve como un simple paseo
+  // por el pasillo interior (sin tramos exteriores).
 
   const dir = fi < ti ? 1 : -1
   const mid: number[] = []
