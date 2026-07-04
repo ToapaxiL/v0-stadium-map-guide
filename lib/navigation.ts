@@ -247,6 +247,7 @@ const PT = {
   p4Local:       { x: 746.709, y: 229.997 }, // ingreso Puerta 4 LOCAL
   p4Junction:    { x: 747.12,  y: 289.997 }, // giro interior a la altura de General Sur Alta
   p4AltaSeat:    { x: 670.291, y: 289.996 }, // General Sur Alta (P4)
+  p4BajaSeat:    { x: 670.292, y: 229.997 }, // General Sur Baja (P4)
 
   // ── Zona Norte Occidental (RUTA 2), calle Hermensz Van Risn Rembrandt ──
   p9OccSeat:     { x: 275.995, y: 294.187 }, // General Norte Occidental (P9 Occ)
@@ -375,72 +376,91 @@ function makeWestLoopRoute(north: number, south: number, dir: "n2s" | "s2n"): Sp
   }
 }
 
-const SPECIAL_ROUTES: Record<string, SpecialRouteBuilder> = {
-  // ── RUTA 1: P3 → P4 (General Sur Alta) por el exterior ──
-  "tribuna-sur-occidental|general-sur-alta": (lang) => {
-    const path = [
-      PT.p3, PT.p23Exterior, PT.calleAbajo, PT.calleArriba, PT.p4Local, PT.p4Junction, PT.p4AltaSeat,
-    ]
-    const steps: RouteStep[] =
-      lang === "es"
-        ? [
-            { type: "start",    instruction: "Tribuna Sur Occidental", detail: "Puerta 3", icon: "pin" },
-            { type: "external", instruction: "Sal al exterior", icon: "exit" },
-            { type: "external", instruction: "Dirígete a la Puerta 2-3", icon: "walk" },
-            { type: "external", instruction: "Camina por Calle Cacica Quilago", icon: "walk" },
-            { type: "external", instruction: "Ingresa por la Puerta 4 LOCAL", icon: "enter" },
-            { type: "arrive",   instruction: "General Sur Alta", detail: "Puerta 4", icon: "flag" },
-          ]
-        : [
-            { type: "start",    instruction: "South West Stand", detail: "Gate 3", icon: "pin" },
-            { type: "external", instruction: "Exit to the exterior", icon: "exit" },
-            { type: "external", instruction: "Head to Gate 2-3", icon: "walk" },
-            { type: "external", instruction: "Walk along Calle Cacica Quilago", icon: "walk" },
-            { type: "external", instruction: "Enter through Gate 4 LOCAL", icon: "enter" },
-            { type: "arrive",   instruction: "South High General", detail: "Gate 4", icon: "flag" },
-          ]
-    return {
-      steps,
-      totalSteps: steps.length,
-      usesExterior: true,
-      gateTrace: [3, 4],
-      specialPath: path,
-      specialMeters: metersOf(path),
-    }
-  },
+// ============================================================
+// Corredor Sur (Puerta 2-3 + Calle Cacica Quilago)
+// ------------------------------------------------------------
+// El paso interno P3 ✖ P4 está cortado: TODA ruta entre el bloque Sur
+// Occidental {Plazoleta(P1), P2, P3} y la General Sur (P4) debe salir por la
+// Puerta 2-3 y subir por la Calle Cacica Quilago hasta la Puerta 4 LOCAL.
+// Se genera con makeSouthCorridorRoute para que mapa e indicaciones coincidan
+// siempre, sin importar cuál de las 3 secciones del sur occidental sea.
+// ============================================================
+const SOUTH_T1_NAMES: Record<number, { es: string; en: string; gate: string }> = {
+  1: { es: "Plazoleta",              en: "Plaza",          gate: "1" },
+  2: { es: "Palco Sur Occidental",   en: "South West Box", gate: "2" },
+  3: { es: "Tribuna Sur Occidental", en: "South West Stand", gate: "3" },
+}
+const SOUTH_P4_NAMES: Record<"alta" | "baja", { es: string; en: string }> = {
+  alta: { es: "General Sur Alta", en: "South High General" },
+  baja: { es: "General Sur Baja", en: "South Low General" },
+}
 
-  // ── RUTA 1 (inversa): P4 (General Sur Alta) → P3 ──
-  "general-sur-alta|tribuna-sur-occidental": (lang) => {
-    const path = [
-      PT.p4AltaSeat, PT.p4Junction, PT.p4Local, PT.calleArriba, PT.calleAbajo, PT.p23Exterior, PT.p3,
-    ]
-    const steps: RouteStep[] =
-      lang === "es"
-        ? [
-            { type: "start",    instruction: "General Sur Alta", detail: "Puerta 4", icon: "pin" },
-            { type: "external", instruction: "Sal al exterior por la Puerta 4 LOCAL", icon: "exit" },
-            { type: "external", instruction: "Camina por Calle Cacica Quilago", icon: "walk" },
-            { type: "external", instruction: "Dirígete a la Puerta 2-3", icon: "walk" },
-            { type: "external", instruction: "Ingresa por la Puerta 3", icon: "enter" },
-            { type: "arrive",   instruction: "Tribuna Sur Occidental", detail: "Puerta 3", icon: "flag" },
-          ]
-        : [
-            { type: "start",    instruction: "South High General", detail: "Gate 4", icon: "pin" },
-            { type: "external", instruction: "Exit to the exterior through Gate 4 LOCAL", icon: "exit" },
-            { type: "external", instruction: "Walk along Calle Cacica Quilago", icon: "walk" },
-            { type: "external", instruction: "Head to Gate 2-3", icon: "walk" },
-            { type: "external", instruction: "Enter through Gate 3", icon: "enter" },
-            { type: "arrive",   instruction: "South West Stand", detail: "Gate 3", icon: "flag" },
-          ]
+// Cola interior del bloque Sur Occidental: del asiento de la sección hasta P3.
+function southTail1(gate: number): Pt[] {
+  if (gate === 1) return [PT.plazoletaP1, PT.p2Seat, PT.p3]
+  if (gate === 2) return [PT.p2Seat, PT.p3]
+  return [PT.p3] // P3
+}
+// Tramo exterior P3 → Cacica Quilago → asiento de la General Sur (P4).
+function p4Head(sub: "alta" | "baja"): Pt[] {
+  return sub === "alta"
+    ? [PT.p23Exterior, PT.calleAbajo, PT.calleArriba, PT.p4Local, PT.p4Junction, PT.p4AltaSeat]
+    : [PT.p23Exterior, PT.calleAbajo, PT.calleArriba, PT.p4Local, PT.p4BajaSeat]
+}
+
+function makeSouthCorridorRoute(t1: number, sub: "alta" | "baja", dir: "out" | "in"): SpecialRouteBuilder {
+  return (lang) => {
+    const forward = [...southTail1(t1), ...p4Head(sub)]
+    const path = dir === "out" ? forward : [...forward].reverse()
+    const n1 = SOUTH_T1_NAMES[t1]
+    const n4 = SOUTH_P4_NAMES[sub]
+    const es = lang === "es"
+    const gw = es ? "Puerta" : "Gate"
+    const steps: RouteStep[] = []
+
+    if (dir === "out") {
+      steps.push({ type: "start", instruction: es ? n1.es : n1.en, detail: `${gw} ${n1.gate}`, icon: "pin" })
+      if (t1 !== 3)
+        steps.push({ type: "internal", instruction: es ? "Camina hasta la Puerta 3" : "Walk to Gate 3", icon: "walk" })
+      steps.push({ type: "external", instruction: es ? "Sal por la Puerta 2-3" : "Exit through Gate 2-3", icon: "exit" })
+      steps.push({ type: "external", instruction: es ? "Camina por Calle Cacica Quilago" : "Walk along Calle Cacica Quilago", icon: "walk" })
+      steps.push({ type: "external", instruction: es ? "Ingresa por la Puerta 4 LOCAL" : "Enter through Gate 4 LOCAL", icon: "enter" })
+      steps.push({ type: "arrive", instruction: es ? n4.es : n4.en, detail: `${gw} 4`, icon: "flag" })
+    } else {
+      steps.push({ type: "start", instruction: es ? n4.es : n4.en, detail: `${gw} 4`, icon: "pin" })
+      steps.push({ type: "external", instruction: es ? "Sal por la Puerta 4 LOCAL" : "Exit through Gate 4 LOCAL", icon: "exit" })
+      steps.push({ type: "external", instruction: es ? "Camina por Calle Cacica Quilago" : "Walk along Calle Cacica Quilago", icon: "walk" })
+      steps.push({ type: "external", instruction: es ? "Ingresa por la Puerta 2-3" : "Enter through Gate 2-3", icon: "enter" })
+      if (t1 !== 3)
+        steps.push({ type: "internal", instruction: es ? `Camina hasta la Puerta ${n1.gate}` : `Walk to Gate ${n1.gate}`, icon: "walk" })
+      steps.push({ type: "arrive", instruction: es ? n1.es : n1.en, detail: `${gw} ${n1.gate}`, icon: "flag" })
+    }
+
     return {
       steps,
       totalSteps: steps.length,
       usesExterior: true,
-      gateTrace: [4, 3],
+      gateTrace: dir === "out" ? [t1, 3, 4] : [4, 3, t1],
       specialPath: path,
       specialMeters: metersOf(path),
     }
-  },
+  }
+}
+
+const SPECIAL_ROUTES: Record<string, SpecialRouteBuilder> = {
+  // ── Corredor Sur: {Plazoleta(P1), P2, P3} ↔ General Sur (P4) por Cacica Quilago ──
+  "tribuna-sur-occidental|general-sur-alta": makeSouthCorridorRoute(3, "alta", "out"),
+  "general-sur-alta|tribuna-sur-occidental": makeSouthCorridorRoute(3, "alta", "in"),
+  "tribuna-sur-occidental|general-sur-baja": makeSouthCorridorRoute(3, "baja", "out"),
+  "general-sur-baja|tribuna-sur-occidental": makeSouthCorridorRoute(3, "baja", "in"),
+  "palco-sur-occidental|general-sur-alta":   makeSouthCorridorRoute(2, "alta", "out"),
+  "general-sur-alta|palco-sur-occidental":   makeSouthCorridorRoute(2, "alta", "in"),
+  "palco-sur-occidental|general-sur-baja":   makeSouthCorridorRoute(2, "baja", "out"),
+  "general-sur-baja|palco-sur-occidental":   makeSouthCorridorRoute(2, "baja", "in"),
+  "plazoleta|general-sur-alta":              makeSouthCorridorRoute(1, "alta", "out"),
+  "general-sur-alta|plazoleta":              makeSouthCorridorRoute(1, "alta", "in"),
+  "plazoleta|general-sur-baja":              makeSouthCorridorRoute(1, "baja", "out"),
+  "general-sur-baja|plazoleta":              makeSouthCorridorRoute(1, "baja", "in"),
 
   // ── RUTA 2: General Norte Occidental (P9) → Tribuna Norte Occidental (P10) ──
   //    Salida por Puerta 9W, calle Hermensz Van Risn Rembrandt e ingreso por
