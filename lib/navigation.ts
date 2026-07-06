@@ -136,6 +136,7 @@ const T = {
     enterGate:      (g: number | string) => `Entra por Puerta ${g}`,
     walkToCorridor: "Camina por el pasillo interior hasta tu sección",
     viaPlazoleta:   "Pasa por la Plazoleta",
+    passageP4P5:    "Desde General Sur Baja (Puerta 4) accede a Tribuna Sur Oriental (Puerta 5) a través del paso habilitado entre ambas secciones",
   },
   en: {
     walkCorridor:   "Walk through the indoor corridor",
@@ -147,6 +148,7 @@ const T = {
     enterGate:      (g: number | string) => `Enter through Gate ${g}`,
     walkToCorridor: "Walk through the indoor corridor to your section",
     viaPlazoleta:   "Pass through the Plaza",
+    passageP4P5:    "From General Sur Baja (Gate 4) you can reach Tribuna Sur Oriental (Gate 5) through the passage enabled between both sections",
   },
 }
 
@@ -621,6 +623,7 @@ function makeEastCorridorRoute(t1: number, east: number, dir: "out" | "in"): Spe
         : (east >= 7
             ? `Continue through South Low General and the South East to ${nE.en}`
             : `Continue through South Low General to ${nE.en}`), icon: "walk" })
+      steps.push({ type: "internal", instruction: T[lang].passageP4P5, icon: "enter" })
       steps.push({ type: "arrive", instruction: es ? nE.es : nE.en, detail: `${gw} ${nE.gate}`, icon: "flag" })
     } else {
       steps.push({ type: "start", instruction: es ? nE.es : nE.en, detail: `${gw} ${nE.gate}`, icon: "pin" })
@@ -631,6 +634,7 @@ function makeEastCorridorRoute(t1: number, east: number, dir: "out" | "in"): Spe
         : (east >= 7
             ? "Walk through the South East to South Low General"
             : "Walk to South Low General"), icon: "walk" })
+      steps.push({ type: "internal", instruction: T[lang].passageP4P5, icon: "enter" })
       steps.push({ type: "internal", instruction: es
         ? "Camina de General Sur Baja a General Sur Alta"
         : "Walk from South Low General to South High General", icon: "walk" })
@@ -689,20 +693,7 @@ function makeSurInternalRoute(from: SurNode, to: SurNode): SpecialRouteBuilder {
     const es = lang === "es"
     const gw = es ? "Puerta" : "Gate"
 
-    // El recorrido cruza entre General Sur (P4) y la zona Sur Oriental (P5/P6)
-    // cuando el origen y el destino pertenecen a bloques distintos. En ese caso
-    // se utiliza el paso interno habilitado entre ambas secciones (sin salir al
-    // exterior), por lo que la indicación lo señala de forma explícita.
-    const isSur = (n: SurNode) => n === "alta" || n === "baja"
-    const isOriental = (n: SurNode) => n === 5 || n === 6
-    const crossesPassage = isSur(from) !== isSur(to) && (isOriental(from) || isOriental(to))
-    const walkInstruction = crossesPassage
-      ? es
-        ? `Dirígete a ${nTo.es} a través del paso interno habilitado entre ambas secciones`
-        : `Head to ${nTo.en} through the internal passage connecting both sections`
-      : es
-        ? `Camina hasta ${nTo.es}`
-        : `Walk to ${nTo.en}`
+    const walkInstruction = es ? `Camina hasta ${nTo.es}` : `Walk to ${nTo.en}`
 
     // Secciones intermedias que se atraviesan (excluye origen y destino), para
     // que la indicación no quede escueta cuando el recorrido pasa por varias.
@@ -714,11 +705,24 @@ function makeSurInternalRoute(from: SurNode, to: SurNode): SpecialRouteBuilder {
       ? (es ? "Pasas por " : "You pass by ") + joinList(middleSections, lang)
       : undefined
 
+    // Detecta el cruce del paso habilitado P4 (General Sur Baja) ↔ P5 (Tribuna
+    // Sur Oriental) dentro del recorrido, para mencionarlo SIEMPRE de forma
+    // homogénea con el resto de rutas del mapa.
+    let crossesP4P5 = false
+    for (let i = 0; i < ordered.length - 1; i++) {
+      const a = ordered[i]
+      const b = ordered[i + 1]
+      if ((a === "baja" && b === 5) || (a === 5 && b === "baja")) crossesP4P5 = true
+    }
+
     const steps: RouteStep[] = [
       { type: "start", instruction: es ? nFrom.es : nFrom.en, detail: `${gw} ${nFrom.gate}`, icon: "pin" },
       { type: "internal", instruction: walkInstruction, detail: walkDetail, icon: "walk" },
-      { type: "arrive", instruction: es ? nTo.es : nTo.en, detail: `${gw} ${nTo.gate}`, icon: "flag" },
     ]
+    if (crossesP4P5) {
+      steps.push({ type: "internal", instruction: T[lang].passageP4P5, icon: "enter" })
+    }
+    steps.push({ type: "arrive", instruction: es ? nTo.es : nTo.en, detail: `${gw} ${nTo.gate}`, icon: "flag" })
     return {
       steps,
       totalSteps: steps.length,
@@ -1060,6 +1064,21 @@ function resolveRoute(from: number, to: number, lang: "es" | "en" = "es"): Resol
     steps.push(...ext(10, ["H. Vans Risn", "La Esperanza"], 1, { exitLabel: "10-11" }))
   }
 
+  // ── Paso interno habilitado P4 (General Sur Baja) ↔ P5 (Tribuna Sur Oriental) ──
+  // Ya NO se sale al exterior entre estas dos secciones: existe un paso interno
+  // habilitado. Cualquier ruta que transite entre General Sur y el lado oriental
+  // lo utiliza y SIEMPRE lo menciona en las indicaciones.
+  const p4ToP5 = () => {
+    steps.push({ type: "internal", instruction: lang === "es" ? "Camina hasta Tribuna Sur Oriental" : "Walk to Tribuna Sur Oriental", icon: "walk" })
+    steps.push({ type: "internal", instruction: T[lang].passageP4P5, icon: "enter" })
+    pushTrace(5)
+  }
+  const p5ToP4 = () => {
+    steps.push({ type: "internal", instruction: lang === "es" ? "Camina hasta General Sur Baja" : "Walk to General Sur Baja", icon: "walk" })
+    steps.push({ type: "internal", instruction: T[lang].passageP4P5, icon: "enter" })
+    pushTrace(4)
+  }
+
   // ── Mismo tramo directo ──────────────────────────────────
 
   if (inTramo1(from) && inTramo1(to)) {
@@ -1134,8 +1153,8 @@ function resolveRoute(from: number, to: number, lang: "es" | "en" = "es"): Resol
 
   // ── Rutas con P4 (General Sur) ───────────────────────────
   // P4 ↔ TRAMO_1 (incl. Plazoleta) por el sur: Cacica Quilago ↔ P3.
-  // P4 ↔ TRAMO_3 (Norte Occidental) se resuelve más abajo por el norte
-  // (Cacica + Diego Vásquez → P5 → … → P9 → H. Vans Risn → P10).
+  // P4 ↔ TRAMO_2 / TRAMO_3 (lado oriental y Norte Occidental) usan el paso
+  // interno habilitado P4 ↔ P5 (sin salir al exterior) y continúan por dentro.
   if (from === 4 && inTramo1(to)) {
     steps.push(...ext(4, ["Calle Cacica Quilago"], 3))
     wi(3, to, TRAMO_1)
@@ -1147,24 +1166,25 @@ function resolveRoute(from: number, to: number, lang: "es" | "en" = "es"): Resol
     return { steps, trace }
   }
   if (from === 4 && inTramo2(to)) {
-    const entry = to <= 6 ? to : 5
-    steps.push(...ext(4, ["Calle Cacica Quilago", "Av. Diego Vásquez de Cepeda"], entry))
-    wi(entry, to, TRAMO_2)
+    // General Sur Baja → lado oriental por el paso interno habilitado P4 ↔ P5.
+    p4ToP5()
+    wi(5, to, TRAMO_2)
     return { steps, trace }
   }
   if (inTramo2(from) && to === 4) {
+    // Lado oriental → General Sur Baja por el paso interno habilitado P5 ↔ P4.
     wi(from, 5, TRAMO_2)
-    steps.push(...ext(5, ["Calle Cacica Quilago", "Av. Diego Vásquez de Cepeda"], 4))
+    p5ToP4()
     return { steps, trace }
   }
   if (inTramo3(from) && to === 4) {
     wi(from, 10, TRAMO_3)
     westToTramo2(5)
-    steps.push(...ext(5, ["Calle Cacica Quilago", "Av. Diego Vásquez de Cepeda"], 4))
+    p5ToP4()
     return { steps, trace }
   }
   if (from === 4 && inTramo3(to)) {
-    steps.push(...ext(4, ["Calle Cacica Quilago", "Av. Diego Vásquez de Cepeda"], 5))
+    p4ToP5()
     tramo2ToWest(5)
     wi(10, to, TRAMO_3)
     return { steps, trace }
