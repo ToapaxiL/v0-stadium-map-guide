@@ -93,14 +93,43 @@ export function getSectionName(id: string, lang: "es" | "en" = "es"): string {
 
 export const ALL_SECTIONS = Object.keys(SECTION_GATES)
 
+// Etiqueta de sección representativa por puerta, para narrar por dónde se pasa.
+// Las puertas compartidas (4 = General Sur Alta/Baja, 9 = General Norte
+// Oriental/Occidental) usan un nombre de bloque genérico.
+const GATE_SECTION_LABEL: Record<number, { es: string; en: string }> = {
+  1:  { es: "la Plazoleta",             en: "the Plaza" },
+  2:  { es: "Palco Sur Occidental",     en: "South West Box" },
+  3:  { es: "Tribuna Sur Occidental",   en: "South West Stand" },
+  4:  { es: "General Sur",              en: "South General" },
+  5:  { es: "Tribuna Sur Oriental",     en: "South East Stand" },
+  6:  { es: "Palco Sur Oriental",       en: "South East Box" },
+  7:  { es: "Palco Norte Oriental",     en: "North East Box" },
+  8:  { es: "Tribuna Norte Oriental",   en: "North East Stand" },
+  9:  { es: "General Norte Oriental",   en: "North East General" },
+  10: { es: "Tribuna Norte Occidental", en: "North West Stand" },
+  11: { es: "Palco Norte Occidental",   en: "North West Box" },
+}
+
+function gateSectionLabel(g: number, lang: "es" | "en"): string {
+  return GATE_SECTION_LABEL[g]?.[lang] ?? `${lang === "es" ? "Puerta" : "Gate"} ${g}`
+}
+
+// Une una lista en lenguaje natural: "A, B y C" / "A, B and C".
+function joinList(items: string[], lang: "es" | "en"): string {
+  const list = items.filter(Boolean)
+  if (list.length <= 1) return list[0] ?? ""
+  const last = list[list.length - 1]
+  return `${list.slice(0, -1).join(", ")} ${lang === "es" ? "y" : "and"} ${last}`
+}
+
 // ============================================================
 // Textos por idioma
 // ============================================================
 const T = {
   es: {
     walkCorridor:   "Camina por el pasillo interior",
-    passesByGate:   (gates: string) => `Pasas por Puerta ${gates}`,
-    fromTo:         (a: number, b: number) => `De Puerta ${a} a Puerta ${b}`,
+    passesBy:       (sections: string) => `Pasas por ${sections}`,
+    towards:        (section: string) => `Avanza hacia ${section}`,
     exitGate:       (g: number | string) => `Sal por Puerta ${g} al exterior`,
     walkStreet:     (s: string) => `Camina por ${s}`,
     continueStreet: (s: string) => `Continúa por ${s}`,
@@ -110,8 +139,8 @@ const T = {
   },
   en: {
     walkCorridor:   "Walk through the indoor corridor",
-    passesByGate:   (gates: string) => `Passes through Gate ${gates}`,
-    fromTo:         (a: number, b: number) => `From Gate ${a} to Gate ${b}`,
+    passesBy:       (sections: string) => `You pass by ${sections}`,
+    towards:        (section: string) => `Head toward ${section}`,
     exitGate:       (g: number | string) => `Exit through Gate ${g} to the exterior`,
     walkStreet:     (s: string) => `Walk along ${s}`,
     continueStreet: (s: string) => `Continue along ${s}`,
@@ -157,14 +186,13 @@ function walkInternal(
     const plazaIdx = mid.indexOf(PLAZOLETA_GATE)
     const before = mid.slice(0, plazaIdx).filter(g => g !== PLAZOLETA_GATE)
     const after  = mid.slice(plazaIdx + 1).filter(g => g !== PLAZOLETA_GATE)
-    const gateWord = lang === "es" ? "Puerta" : "Gate"
 
     // Segmento antes de la plazoleta (solo si hay tramo real)
     if (before.length > 0) {
       steps.push({
         type: "internal",
         instruction: t.walkCorridor,
-        detail: t.passesByGate(before.map(String).join(`, ${gateWord} `)),
+        detail: t.passesBy(joinList(before.map(g => gateSectionLabel(g, lang)), lang)),
         icon: "walk",
       })
     }
@@ -181,7 +209,7 @@ function walkInternal(
       steps.push({
         type: "internal",
         instruction: t.walkCorridor,
-        detail: t.passesByGate(after.map(String).join(`, ${gateWord} `)),
+        detail: t.passesBy(joinList(after.map(g => gateSectionLabel(g, lang)), lang)),
         icon: "walk",
       })
     }
@@ -190,8 +218,8 @@ function walkInternal(
       type: "internal",
       instruction: t.walkCorridor,
       detail: mid.length > 0
-        ? t.passesByGate(mid.map(String).join(`, ${lang === "es" ? "Puerta" : "Gate"} `))
-        : t.fromTo(from, to),
+        ? t.passesBy(joinList(mid.map(g => gateSectionLabel(g, lang)), lang))
+        : t.towards(gateSectionLabel(to, lang)),
       icon: "walk",
     })
   }
@@ -676,9 +704,19 @@ function makeSurInternalRoute(from: SurNode, to: SurNode): SpecialRouteBuilder {
         ? `Camina hasta ${nTo.es}`
         : `Walk to ${nTo.en}`
 
+    // Secciones intermedias que se atraviesan (excluye origen y destino), para
+    // que la indicación no quede escueta cuando el recorrido pasa por varias.
+    const middleSections = ordered
+      .slice(1, -1)
+      .map((n) => SUR_INTERNAL_NAMES[String(n)])
+      .map((s) => (es ? s.es : s.en))
+    const walkDetail = middleSections.length
+      ? (es ? "Pasas por " : "You pass by ") + joinList(middleSections, lang)
+      : undefined
+
     const steps: RouteStep[] = [
       { type: "start", instruction: es ? nFrom.es : nFrom.en, detail: `${gw} ${nFrom.gate}`, icon: "pin" },
-      { type: "internal", instruction: walkInstruction, icon: "walk" },
+      { type: "internal", instruction: walkInstruction, detail: walkDetail, icon: "walk" },
       { type: "arrive", instruction: es ? nTo.es : nTo.en, detail: `${gw} ${nTo.gate}`, icon: "flag" },
     ]
     return {
