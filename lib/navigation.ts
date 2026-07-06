@@ -660,9 +660,25 @@ function makeSurInternalRoute(from: SurNode, to: SurNode): SpecialRouteBuilder {
     const nTo = SUR_INTERNAL_NAMES[String(to)]
     const es = lang === "es"
     const gw = es ? "Puerta" : "Gate"
+
+    // El recorrido cruza entre General Sur (P4) y la zona Sur Oriental (P5/P6)
+    // cuando el origen y el destino pertenecen a bloques distintos. En ese caso
+    // se utiliza el paso interno habilitado entre ambas secciones (sin salir al
+    // exterior), por lo que la indicación lo señala de forma explícita.
+    const isSur = (n: SurNode) => n === "alta" || n === "baja"
+    const isOriental = (n: SurNode) => n === 5 || n === 6
+    const crossesPassage = isSur(from) !== isSur(to) && (isOriental(from) || isOriental(to))
+    const walkInstruction = crossesPassage
+      ? es
+        ? `Dirígete a ${nTo.es} a través del paso interno habilitado entre ambas secciones`
+        : `Head to ${nTo.en} through the internal passage connecting both sections`
+      : es
+        ? `Camina hasta ${nTo.es}`
+        : `Walk to ${nTo.en}`
+
     const steps: RouteStep[] = [
       { type: "start", instruction: es ? nFrom.es : nFrom.en, detail: `${gw} ${nFrom.gate}`, icon: "pin" },
-      { type: "internal", instruction: es ? `Camina hasta ${nTo.es}` : `Walk to ${nTo.en}`, icon: "walk" },
+      { type: "internal", instruction: walkInstruction, icon: "walk" },
       { type: "arrive", instruction: es ? nTo.es : nTo.en, detail: `${gw} ${nTo.gate}`, icon: "flag" },
     ]
     return {
