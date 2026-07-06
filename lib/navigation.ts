@@ -137,6 +137,7 @@ const T = {
     walkToCorridor: "Camina por el pasillo interior hasta tu sección",
     viaPlazoleta:   "Pasa por la Plazoleta",
     passageP4P5:    "Desde General Sur Baja (Puerta 4) accede a Tribuna Sur Oriental (Puerta 5) a través del paso habilitado",
+    passageP8P9:    "Desde Tribuna Norte Oriental (Puerta 8) accede a General Norte Oriental (Puerta 9) a través del paso habilitado",
   },
   en: {
     walkCorridor:   "Walk through the indoor corridor",
@@ -149,6 +150,7 @@ const T = {
     walkToCorridor: "Walk through the indoor corridor to your section",
     viaPlazoleta:   "Pass through the Plaza",
     passageP4P5:    "From General Sur Baja (Gate 4) you can reach Tribuna Sur Oriental (Gate 5) through the passage enabled between both sections",
+    passageP8P9:    "From Tribuna Norte Oriental (Gate 8) you can reach General Norte Oriental (Gate 9) through the enabled passage",
   },
 }
 
@@ -181,6 +183,41 @@ function walkInternal(
   const dir = fi < ti ? 1 : -1
   const mid: number[] = []
   for (let i = fi + dir; i !== ti; i += dir) mid.push(tramo[i])
+
+  // ── Cruce del paso habilitado P8 (Tribuna Norte Oriental) ↔ P9 (General
+  // Norte Oriental) ──
+  // Cuando el recorrido interior atraviesa el límite entre P8 y P9, se parte el
+  // paseo en dos tramos e inserta SIEMPRE la nota del paso habilitado en el
+  // punto exacto del cruce.
+  const ordered = [from, ...mid, to]
+  let crossIdx = -1
+  for (let i = 0; i < ordered.length - 1; i++) {
+    const a = ordered[i]
+    const b = ordered[i + 1]
+    if ((a === 8 && b === 9) || (a === 9 && b === 8)) { crossIdx = i; break }
+  }
+  if (crossIdx !== -1) {
+    const leftMids = ordered.slice(1, crossIdx + 1)   // secciones hasta el cruce
+    const rightMids = ordered.slice(crossIdx + 1, -1) // secciones tras el cruce
+    if (leftMids.length > 0) {
+      steps.push({
+        type: "internal",
+        instruction: t.walkCorridor,
+        detail: t.passesBy(joinList(leftMids.map(g => gateSectionLabel(g, lang)), lang)),
+        icon: "walk",
+      })
+    }
+    steps.push({ type: "internal", instruction: t.passageP8P9, icon: "enter" })
+    if (rightMids.length > 0) {
+      steps.push({
+        type: "internal",
+        instruction: t.walkCorridor,
+        detail: t.passesBy(joinList(rightMids.map(g => gateSectionLabel(g, lang)), lang)),
+        icon: "walk",
+      })
+    }
+    return
+  }
 
   const passesPlazoleta = mid.includes(PLAZOLETA_GATE)
 
