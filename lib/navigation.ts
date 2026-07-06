@@ -136,7 +136,7 @@ const T = {
     enterGate:      (g: number | string) => `Entra por Puerta ${g}`,
     walkToCorridor: "Camina por el pasillo interior hasta tu sección",
     viaPlazoleta:   "Pasa por la Plazoleta",
-    passageP4P5:    "Desde General Sur Baja (Puerta 4) accede a Tribuna Sur Oriental (Puerta 5) a través del paso habilitado entre ambas secciones",
+    passageP4P5:    "Desde General Sur Baja (Puerta 4) accede a Tribuna Sur Oriental (Puerta 5) a través del paso habilitado",
   },
   en: {
     walkCorridor:   "Walk through the indoor corridor",
