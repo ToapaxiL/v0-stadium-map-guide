@@ -616,24 +616,30 @@ function makeEastCorridorRoute(t1: number, east: number, dir: "out" | "in"): Spe
       steps.push({ type: "internal", instruction: es
         ? "Camina de General Sur Alta a General Sur Baja"
         : "Walk from South High General to South Low General", icon: "walk" })
-      steps.push({ type: "internal", instruction: es
-        ? (east >= 7
-            ? `Continúa por General Sur Baja y el Sur Oriental hasta ${nE.es}`
-            : `Continúa por General Sur Baja hasta ${nE.es}`)
-        : (east >= 7
-            ? `Continue through South Low General and the South East to ${nE.en}`
-            : `Continue through South Low General to ${nE.en}`), icon: "walk" })
+      // El cruce al lado oriental ocurre aquí: paso habilitado P4 → P5.
       steps.push({ type: "internal", instruction: T[lang].passageP4P5, icon: "enter" })
+      if (east > 5) {
+        steps.push({ type: "internal", instruction: es
+          ? (east >= 7
+              ? `Continúa por el Sur Oriental hasta ${nE.es}`
+              : `Continúa hasta ${nE.es}`)
+          : (east >= 7
+              ? `Continue through the South East to ${nE.en}`
+              : `Continue to ${nE.en}`), icon: "walk" })
+      }
       steps.push({ type: "arrive", instruction: es ? nE.es : nE.en, detail: `${gw} ${nE.gate}`, icon: "flag" })
     } else {
       steps.push({ type: "start", instruction: es ? nE.es : nE.en, detail: `${gw} ${nE.gate}`, icon: "pin" })
-      steps.push({ type: "internal", instruction: es
-        ? (east >= 7
-            ? "Camina por el Sur Oriental hasta General Sur Baja"
-            : "Camina hasta General Sur Baja")
-        : (east >= 7
-            ? "Walk through the South East to South Low General"
-            : "Walk to South Low General"), icon: "walk" })
+      if (east > 5) {
+        steps.push({ type: "internal", instruction: es
+          ? (east >= 7
+              ? "Camina por el Sur Oriental hasta Tribuna Sur Oriental"
+              : "Camina hasta Tribuna Sur Oriental")
+          : (east >= 7
+              ? "Walk through the South East to Tribuna Sur Oriental"
+              : "Walk to Tribuna Sur Oriental"), icon: "walk" })
+      }
+      // El cruce al General Sur ocurre aquí: paso habilitado P5 → P4.
       steps.push({ type: "internal", instruction: T[lang].passageP4P5, icon: "enter" })
       steps.push({ type: "internal", instruction: es
         ? "Camina de General Sur Baja a General Sur Alta"
