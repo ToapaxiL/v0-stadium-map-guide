@@ -1,8 +1,8 @@
 // Punto principal del mapa: Estadio Rodrigo Paz Delgado (Quito)
 export const STADIUM = {
   nombre: "Estadio Rodrigo Paz Delgado",
-  lat: -0.1076661,
-  lng: -78.4916898,
+  lat: -0.1076715,
+  lng: -78.4891149,
 } as const
 
 export interface NearbyPlace {
