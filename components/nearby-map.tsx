@@ -204,15 +204,26 @@ export function NearbyMap({ isDarkMode }: NearbyMapProps) {
       : "border-border hover:bg-muted text-foreground"
   }
 
-  // Abre la ruta hacia el lugar en Google Maps. Se navega de forma síncrona a la
-  // URL universal de direcciones: en móvil abre la app de Google Maps si está
-  // instalada y, si no, la web; en escritorio abre la versión web. No se pasa
-  // "origin", por lo que Google Maps usa la ubicación actual del dispositivo
-  // como punto de partida automáticamente (pidiendo permiso si hace falta).
+  // Abre la ruta hacia el lugar según el dispositivo:
+  // - Apple (iPhone, iPad, Mac): Apple Maps (maps.apple.com), que abre la app
+  //   Mapas si está instalada o la web en su defecto.
+  // - Resto (Android, Windows, etc.): Google Maps, que abre la app si existe o
+  //   la web en su defecto.
+  // No se pasa "origin", por lo que cada app usa la ubicación actual del
+  // dispositivo como punto de partida automáticamente.
   const handleDirections = (place: NearbyPlace) => {
     const destination = `${place.lat},${place.lng}`
-    const url =
-      `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}&travelmode=driving`
+
+    const ua = typeof navigator !== "undefined" ? navigator.userAgent : ""
+    const platform = typeof navigator !== "undefined" ? navigator.platform || "" : ""
+    // iPadOS moderno se reporta como Mac con soporte táctil.
+    const isIpadOS = platform === "MacIntel" && typeof document !== "undefined" && (navigator as Navigator).maxTouchPoints > 1
+    const isApple = /iPhone|iPad|iPod|Macintosh/i.test(ua) || isIpadOS
+
+    const url = isApple
+      ? `https://maps.apple.com/?daddr=${encodeURIComponent(destination)}&dirflg=d`
+      : `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}&travelmode=driving`
+
     window.open(url, "_blank", "noopener,noreferrer")
   }
 
