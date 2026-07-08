@@ -204,6 +204,33 @@ export function NearbyMap({ isDarkMode }: NearbyMapProps) {
       : "border-border hover:bg-muted text-foreground"
   }
 
+  // Abre Google Maps con la ruta desde la ubicación del usuario hasta el lugar.
+  // Se abre la ventana de forma síncrona (evita el bloqueo de popups) y luego se
+  // fija la URL: si el navegador entrega la geolocalización, se usa como origen;
+  // si no, Google Maps usa "Tu ubicación" automáticamente.
+  const handleDirections = (place: NearbyPlace) => {
+    const destination = `${place.lat},${place.lng}`
+    const win = window.open("about:blank", "_blank")
+
+    const go = (origin?: string) => {
+      const params = new URLSearchParams({ api: "1", destination, travelmode: "driving" })
+      if (origin) params.set("origin", origin)
+      const url = `https://www.google.com/maps/dir/?${params.toString()}`
+      if (win) win.location.href = url
+      else window.open(url, "_blank")
+    }
+
+    if (typeof navigator !== "undefined" && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => go(`${pos.coords.latitude},${pos.coords.longitude}`),
+        () => go(), // permiso denegado / error → Google usa "Tu ubicación"
+        { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 },
+      )
+    } else {
+      go()
+    }
+  }
+
   const renderTag = (place: NearbyPlace, categoryId: string) => {
     const tags = Array.isArray(place.tag) ? place.tag : [place.tag]
     return tags.map((tag, i) => (
@@ -298,7 +325,7 @@ export function NearbyMap({ isDarkMode }: NearbyMapProps) {
                   variant="outline"
                   size="sm"
                   className="shrink-0 border-blue-500 text-blue-600 hover:bg-blue-600 hover:text-white hover:border-blue-600 dark:text-blue-400 dark:border-blue-400 dark:hover:bg-blue-600 dark:hover:text-white"
-                  onClick={() => window.open(place.maps, "_blank")}
+                  onClick={() => handleDirections(place)}
                 >
                   <Navigation className="w-4 h-4 mr-1" />
                   {t("howToGetThere")}
