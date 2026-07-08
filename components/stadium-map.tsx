@@ -9,6 +9,7 @@ import { SectionDetail } from "./section-detail"
 import { ZoomableImage } from "./zoomable-image"
 import { NavigationGuide } from "./navigation-guide"
 import { NearbyServices, ServiceMap, NearbyPlacesList, services, type Service } from "./nearby-services"
+import { NearbyMap } from "./nearby-map"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -247,6 +248,11 @@ export function StadiumMap() {
           </TabsContent>
 
           <TabsContent value="explore">
+            {/* Mapa interactivo (Google Maps) centrado en el estadio */}
+            <div className="mb-6">
+              <NearbyMap isDarkMode={isDarkMode} />
+            </div>
+
             {/* Search bar */}
             <div className="relative mb-4">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
