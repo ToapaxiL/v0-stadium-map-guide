@@ -13,28 +13,6 @@ const CATEGORY_ICONS: Record<string, React.ReactNode> = {
   pharmacies: <Pill className="w-4 h-4" />,
 }
 
-// Estilos de mapa para modo oscuro
-const DARK_STYLES: google.maps.MapTypeStyle[] = [
-  { elementType: "geometry", stylers: [{ color: "#212121" }] },
-  { elementType: "labels.icon", stylers: [{ visibility: "off" }] },
-  { elementType: "labels.text.fill", stylers: [{ color: "#757575" }] },
-  { elementType: "labels.text.stroke", stylers: [{ color: "#212121" }] },
-  { featureType: "administrative", elementType: "geometry", stylers: [{ color: "#757575" }] },
-  { featureType: "administrative.country", elementType: "labels.text.fill", stylers: [{ color: "#9e9e9e" }] },
-  { featureType: "administrative.locality", elementType: "labels.text.fill", stylers: [{ color: "#bdbdbd" }] },
-  { featureType: "poi", elementType: "labels.text.fill", stylers: [{ color: "#757575" }] },
-  { featureType: "poi.park", elementType: "geometry", stylers: [{ color: "#181818" }] },
-  { featureType: "poi.park", elementType: "labels.text.fill", stylers: [{ color: "#616161" }] },
-  { featureType: "road", elementType: "geometry.fill", stylers: [{ color: "#2c2c2c" }] },
-  { featureType: "road", elementType: "labels.text.fill", stylers: [{ color: "#8a8a8a" }] },
-  { featureType: "road.arterial", elementType: "geometry", stylers: [{ color: "#373737" }] },
-  { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#3c3c3c" }] },
-  { featureType: "road.highway.controlled_access", elementType: "geometry", stylers: [{ color: "#4e4e4e" }] },
-  { featureType: "transit", elementType: "labels.text.fill", stylers: [{ color: "#757575" }] },
-  { featureType: "water", elementType: "geometry", stylers: [{ color: "#000000" }] },
-  { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#3d3d3d" }] },
-]
-
 // Marcador SVG en forma de pin, coloreado
 function pinIcon(color: string, scale = 1): google.maps.Symbol {
   return {
@@ -61,88 +39,28 @@ export function NearbyMap({ isDarkMode }: NearbyMapProps) {
   const stadiumMarker = useRef<google.maps.Marker | null>(null)
   const placeMarkers = useRef<google.maps.Marker[]>([])
 
+  // Conserva la vista (centro/zoom) al recrear el mapa por cambio de tema
+  const lastView = useRef<{ center: google.maps.LatLngLiteral; zoom: number }>({
+    center: { lat: STADIUM.lat, lng: STADIUM.lng },
+    zoom: 15,
+  })
+
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading")
   const [activeCategories, setActiveCategories] = useState<string[]>(
     PLACE_CATEGORIES.map((c) => c.id),
   )
+  // Ref para leer la selección actual dentro del render de marcadores sin re-crear el mapa
+  const activeCategoriesRef = useRef(activeCategories)
+  activeCategoriesRef.current = activeCategories
 
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
 
-  // Inicializa el mapa una sola vez
-  useEffect(() => {
-    if (!apiKey) {
-      setStatus("error")
-      return
-    }
-    let cancelled = false
-
-    setOptions({ key: apiKey, v: "weekly" })
-
-    // Importa "marker" para que google.maps.Marker esté disponible globalmente.
-    Promise.all([importLibrary("maps"), importLibrary("marker")])
-      .then(([{ Map, InfoWindow }]) => {
-        if (cancelled || !mapRef.current) return
-
-        const map = new Map(mapRef.current, {
-          center: { lat: STADIUM.lat, lng: STADIUM.lng },
-          zoom: 15,
-          disableDefaultUI: false,
-          mapTypeControl: false,
-          streetViewControl: false,
-          fullscreenControl: true,
-          zoomControl: true,
-          styles: isDarkMode ? DARK_STYLES : undefined,
-        })
-        mapInstance.current = map
-        infoWindow.current = new InfoWindow()
-
-        // Marcador del estadio: azul, prioridad máxima, siempre visible
-        stadiumMarker.current = new google.maps.Marker({
-          position: { lat: STADIUM.lat, lng: STADIUM.lng },
-          map,
-          title: STADIUM.nombre,
-          icon: pinIcon(STADIUM_COLOR, 1.9),
-          zIndex: 9999,
-          animation: google.maps.Animation.DROP,
-        })
-        stadiumMarker.current.addListener("click", () => {
-          if (!infoWindow.current || !mapInstance.current) return
-          infoWindow.current.setContent(
-            `<div style="font-weight:600;color:#111;padding:2px 4px;">${STADIUM.nombre}</div>`,
-          )
-          infoWindow.current.open(mapInstance.current, stadiumMarker.current!)
-        })
-
-        setStatus("ready")
-      })
-      .catch((err) => {
-        console.log("[v0] Google Maps load error:", err?.message)
-        if (!cancelled) setStatus("error")
-      })
-
-    return () => {
-      cancelled = true
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [apiKey])
-
-  // Actualiza el estilo del mapa al cambiar el tema
-  useEffect(() => {
-    if (mapInstance.current) {
-      mapInstance.current.setOptions({ styles: isDarkMode ? DARK_STYLES : undefined })
-    }
-  }, [isDarkMode])
-
   // Dibuja / actualiza los marcadores de las categorías activas
-  useEffect(() => {
-    if (status !== "ready" || !mapInstance.current) return
-    const map = mapInstance.current
-
-    // Limpia marcadores previos
+  function renderPlaceMarkers(map: google.maps.Map) {
     placeMarkers.current.forEach((m) => m.setMap(null))
     placeMarkers.current = []
 
-    PLACE_CATEGORIES.filter((c) => activeCategories.includes(c.id)).forEach((category) => {
+    PLACE_CATEGORIES.filter((c) => activeCategoriesRef.current.includes(c.id)).forEach((category) => {
       category.places.forEach((place) => {
         const marker = new google.maps.Marker({
           position: { lat: place.lat, lng: place.lng },
@@ -166,7 +84,93 @@ export function NearbyMap({ isDarkMode }: NearbyMapProps) {
         placeMarkers.current.push(marker)
       })
     })
-  }, [status, activeCategories, language])
+  }
+
+  // Inicializa (o recrea) el mapa. Se recrea al cambiar el tema porque
+  // colorScheme sólo se aplica al construir el mapa.
+  useEffect(() => {
+    if (!apiKey) {
+      setStatus("error")
+      return
+    }
+    let cancelled = false
+
+    setOptions({ key: apiKey, v: "weekly" })
+
+    // Importa "marker" para que google.maps.Marker esté disponible globalmente.
+    Promise.all([importLibrary("maps"), importLibrary("marker")])
+      .then(([{ Map, InfoWindow }]) => {
+        if (cancelled || !mapRef.current) return
+
+        const map = new Map(mapRef.current, {
+          center: lastView.current.center,
+          zoom: lastView.current.zoom,
+          // Estilo estándar de Google Maps (claro / oscuro nativo).
+          // No se usan estilos personalizados: se muestran calles, parques,
+          // transporte y POIs tal cual los ofrece Google.
+          colorScheme: isDarkMode ? "DARK" : "LIGHT",
+          // Los iconos/lugares de Google NO responden al clic ni abren InfoWindow.
+          clickableIcons: false,
+          disableDefaultUI: false,
+          mapTypeControl: false,
+          streetViewControl: false,
+          fullscreenControl: true,
+          zoomControl: true,
+        })
+        mapInstance.current = map
+        infoWindow.current = new InfoWindow()
+
+        // Marcador del estadio: azul, prioridad máxima, siempre visible
+        stadiumMarker.current = new google.maps.Marker({
+          position: { lat: STADIUM.lat, lng: STADIUM.lng },
+          map,
+          title: STADIUM.nombre,
+          icon: pinIcon(STADIUM_COLOR, 1.9),
+          zIndex: 9999,
+          animation: google.maps.Animation.DROP,
+        })
+        stadiumMarker.current.addListener("click", () => {
+          if (!infoWindow.current || !mapInstance.current) return
+          infoWindow.current.setContent(
+            `<div style="font-weight:600;color:#111;padding:2px 4px;">${STADIUM.nombre}</div>`,
+          )
+          infoWindow.current.open(mapInstance.current, stadiumMarker.current!)
+        })
+
+        // Guarda la vista cuando el usuario mueve/zoomea el mapa
+        map.addListener("idle", () => {
+          const c = map.getCenter()
+          const z = map.getZoom()
+          if (c && typeof z === "number") {
+            lastView.current = { center: { lat: c.lat(), lng: c.lng() }, zoom: z }
+          }
+        })
+
+        renderPlaceMarkers(map)
+        setStatus("ready")
+      })
+      .catch((err) => {
+        console.log("[v0] Google Maps load error:", err?.message)
+        if (!cancelled) setStatus("error")
+      })
+
+    return () => {
+      cancelled = true
+      placeMarkers.current.forEach((m) => m.setMap(null))
+      placeMarkers.current = []
+      stadiumMarker.current?.setMap(null)
+      stadiumMarker.current = null
+      mapInstance.current = null
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [apiKey, isDarkMode])
+
+  // Redibuja los marcadores al cambiar la selección o el idioma
+  useEffect(() => {
+    if (status !== "ready" || !mapInstance.current) return
+    renderPlaceMarkers(mapInstance.current)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeCategories, language, status])
 
   const toggleCategory = (id: string) => {
     setActiveCategories((prev) =>
