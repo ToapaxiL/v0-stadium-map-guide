@@ -204,31 +204,16 @@ export function NearbyMap({ isDarkMode }: NearbyMapProps) {
       : "border-border hover:bg-muted text-foreground"
   }
 
-  // Abre Google Maps con la ruta desde la ubicación del usuario hasta el lugar.
-  // Se abre la ventana de forma síncrona (evita el bloqueo de popups) y luego se
-  // fija la URL: si el navegador entrega la geolocalización, se usa como origen;
-  // si no, Google Maps usa "Tu ubicación" automáticamente.
+  // Abre la ruta hacia el lugar en Google Maps. Se navega de forma síncrona a la
+  // URL universal de direcciones: en móvil abre la app de Google Maps si está
+  // instalada y, si no, la web; en escritorio abre la versión web. No se pasa
+  // "origin", por lo que Google Maps usa la ubicación actual del dispositivo
+  // como punto de partida automáticamente (pidiendo permiso si hace falta).
   const handleDirections = (place: NearbyPlace) => {
     const destination = `${place.lat},${place.lng}`
-    const win = window.open("about:blank", "_blank")
-
-    const go = (origin?: string) => {
-      const params = new URLSearchParams({ api: "1", destination, travelmode: "driving" })
-      if (origin) params.set("origin", origin)
-      const url = `https://www.google.com/maps/dir/?${params.toString()}`
-      if (win) win.location.href = url
-      else window.open(url, "_blank")
-    }
-
-    if (typeof navigator !== "undefined" && navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => go(`${pos.coords.latitude},${pos.coords.longitude}`),
-        () => go(), // permiso denegado / error → Google usa "Tu ubicación"
-        { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 },
-      )
-    } else {
-      go()
-    }
+    const url =
+      `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}&travelmode=driving`
+    window.open(url, "_blank", "noopener,noreferrer")
   }
 
   const renderTag = (place: NearbyPlace, categoryId: string) => {
