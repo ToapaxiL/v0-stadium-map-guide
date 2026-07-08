@@ -8,9 +8,11 @@ export const STADIUM = {
 export interface NearbyPlace {
   id: number
   nombre: string
+  address: string
   lat: number
   lng: number
   maps: string
+  tag: string | string[]
 }
 
 export interface PlaceCategory {
@@ -22,17 +24,133 @@ export interface PlaceCategory {
 
 // Categorías de lugares cercanos. Cada categoría tiene su color de marcador.
 // Nuevas categorías pueden añadirse aquí siguiendo la misma estructura.
+// Coordenadas obtenidas de los enlaces de Google Maps de cada lugar.
 export const PLACE_CATEGORIES: PlaceCategory[] = [
   {
     id: "pharmacies",
     labelKey: "pharmacies",
     color: "#ef4444", // rojo
     places: [
-      { id: 1, nombre: "Pharma Center", lat: -0.1067950527514329, lng: -78.49227199031257, maps: "https://maps.app.goo.gl/1sJT86vXUJGGkDRA8" },
-      { id: 2, nombre: "Farmacias Económicas Quito La Delicia", lat: -0.1087944, lng: -78.4930755, maps: "https://maps.app.goo.gl/ntMQC9cuMs8pHR2H9" },
-      { id: 3, nombre: "Fybeca Da Vinci", lat: -0.1046491, lng: -78.4914398, maps: "https://maps.app.goo.gl/QNLbVksk7UvemCwf7" },
-      { id: 4, nombre: "Farmacia Económica Quito Diego de Vázquez", lat: -0.1110492, lng: -78.4895358, maps: "https://maps.app.goo.gl/QjZdScFyznWGvDW77" },
-      { id: 5, nombre: "Farmacias Medicity Quito C.C. Condado", lat: -0.1043941, lng: -78.4915386, maps: "https://maps.app.goo.gl/v7cPKW67wHdQPc3L9" },
+      {
+        id: 1,
+        nombre: "Farmacias Económicas Quito La Delicia",
+        address: "La Delicia, Quito",
+        lat: -0.1088014,
+        lng: -78.4929594,
+        maps: "https://maps.app.goo.gl/1jah6tSGa6yk5ixA8",
+        tag: "Farmacia",
+      },
+      {
+        id: 2,
+        nombre: "Farmacias Medicity Quito CC Condado",
+        address: "C.C. Condado, Quito",
+        lat: -0.1044386,
+        lng: -78.491379,
+        maps: "https://maps.app.goo.gl/wayk96A24EYXg3QE8",
+        tag: "Farmacia",
+      },
+      {
+        id: 3,
+        nombre: "Fybeca El Condado",
+        address: "C.C. El Condado, Quito",
+        lat: -0.102808,
+        lng: -78.4898655,
+        maps: "https://maps.app.goo.gl/TnuLcsrcuaL1o5C18",
+        tag: "Farmacia",
+      },
+    ],
+  },
+  {
+    id: "transport",
+    labelKey: "transport",
+    color: "#3b82f6", // azul
+    places: [
+      {
+        id: 1,
+        nombre: "Terminal Ofelia",
+        address: "Parada Trole / Ecovía - La Ofelia",
+        lat: -0.1102,
+        lng: -78.48827,
+        maps: "https://maps.app.goo.gl/i8E3syeaLkxFbwC9A",
+        tag: "Bus",
+      },
+      {
+        id: 2,
+        nombre: "Estación Labrador",
+        address: "Estación Labrador, Quito",
+        lat: -0.1555347,
+        lng: -78.4861323,
+        maps: "https://maps.app.goo.gl/9LUNZthhxCmdatZc7",
+        tag: ["Bus", "Metro"],
+      },
+    ],
+  },
+  {
+    id: "hospitals",
+    labelKey: "hospitals",
+    color: "#22c55e", // verde
+    places: [
+      {
+        id: 1,
+        nombre: "Hospital Provincial General Pablo Arturo Suárez",
+        address: "Quito, Ecuador",
+        lat: -0.1272568,
+        lng: -78.4976501,
+        maps: "https://maps.app.goo.gl/Mn94whLbsdbgyHL56",
+        tag: "Hospital",
+      },
+    ],
+  },
+  {
+    id: "atm",
+    labelKey: "atm",
+    color: "#10b981", // esmeralda
+    places: [
+      {
+        id: 1,
+        nombre: "Cajero JEP",
+        address: "Quito, Ecuador",
+        lat: -0.1074226,
+        lng: -78.4908912,
+        maps: "https://maps.app.goo.gl/LeT6jm1GNZQgeVQg7",
+        tag: "Cajero",
+      },
+      {
+        id: 2,
+        nombre: "Cajero Banco Pichincha",
+        address: "Quito, Ecuador",
+        lat: -0.1065846,
+        lng: -78.4908626,
+        maps: "https://maps.app.goo.gl/PfWwpJ6tEjLYFhcVA",
+        tag: "Cajero",
+      },
+      {
+        id: 3,
+        nombre: "Cajero Banco Pacífico",
+        address: "Quito, Ecuador",
+        lat: -0.1031285,
+        lng: -78.4901234,
+        maps: "https://maps.app.goo.gl/wv39xEcrejb83JyW9",
+        tag: "Cajero",
+      },
+      {
+        id: 4,
+        nombre: "Cajero Produbanco",
+        address: "Quito, Ecuador",
+        lat: -0.102864,
+        lng: -78.4897804,
+        maps: "https://maps.app.goo.gl/9QBsJV8x7B1kwq1q8",
+        tag: "Cajero",
+      },
+      {
+        id: 5,
+        nombre: "Cajero Banco Guayaquil",
+        address: "Quito, Ecuador",
+        lat: -0.1026074,
+        lng: -78.4901018,
+        maps: "https://maps.app.goo.gl/Wo8Fa9vApKtDcc3u6",
+        tag: "Cajero",
+      },
     ],
   },
 ]

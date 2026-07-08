@@ -3,14 +3,42 @@
 import { useEffect, useRef, useState } from "react"
 import { setOptions, importLibrary } from "@googlemaps/js-api-loader"
 import { useLanguage } from "@/lib/language-context"
-import { STADIUM, PLACE_CATEGORIES, type PlaceCategory } from "@/lib/nearby-places"
-import { Pill, MapPin, AlertCircle } from "lucide-react"
+import { STADIUM, PLACE_CATEGORIES, type PlaceCategory, type NearbyPlace } from "@/lib/nearby-places"
+import { Button } from "@/components/ui/button"
+import { Pill, Bus, Hospital, Banknote, MapPin, AlertCircle, Navigation } from "lucide-react"
 
 const STADIUM_COLOR = "#2563eb" // azul
 
-// Iconos de categoría (para las chips)
+// Iconos por categoría (chips + lista)
 const CATEGORY_ICONS: Record<string, React.ReactNode> = {
   pharmacies: <Pill className="w-4 h-4" />,
+  transport: <Bus className="w-4 h-4" />,
+  hospitals: <Hospital className="w-4 h-4" />,
+  atm: <Banknote className="w-4 h-4" />,
+}
+
+// Color del chip activo por categoría
+const CHIP_ACTIVE: Record<string, string> = {
+  pharmacies: "bg-red-500 text-white border-red-500",
+  transport: "bg-blue-500 text-white border-blue-500",
+  hospitals: "bg-green-500 text-white border-green-500",
+  atm: "bg-emerald-500 text-white border-emerald-500",
+}
+
+// Color de la etiqueta (badge) de la lista por categoría
+const TAG_COLOR: Record<string, string> = {
+  pharmacies: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
+  transport: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
+  hospitals: "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300",
+  atm: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
+}
+
+// Color del icono de la lista por categoría
+const ICON_COLOR: Record<string, string> = {
+  pharmacies: "text-red-600 dark:text-red-400",
+  transport: "text-blue-600 dark:text-blue-400",
+  hospitals: "text-green-600 dark:text-green-400",
+  atm: "text-emerald-600 dark:text-emerald-400",
 }
 
 // Marcador SVG en forma de pin, coloreado
@@ -39,51 +67,57 @@ export function NearbyMap({ isDarkMode }: NearbyMapProps) {
   const stadiumMarker = useRef<google.maps.Marker | null>(null)
   const placeMarkers = useRef<google.maps.Marker[]>([])
 
-  // Conserva la vista (centro/zoom) al recrear el mapa por cambio de tema
-  const lastView = useRef<{ center: google.maps.LatLngLiteral; zoom: number }>({
-    center: { lat: STADIUM.lat, lng: STADIUM.lng },
-    zoom: 15,
-  })
-
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading")
-  const [activeCategories, setActiveCategories] = useState<string[]>(
-    PLACE_CATEGORIES.map((c) => c.id),
-  )
-  // Ref para leer la selección actual dentro del render de marcadores sin re-crear el mapa
-  const activeCategoriesRef = useRef(activeCategories)
-  activeCategoriesRef.current = activeCategories
+  // Selección única de categoría (por defecto, farmacias) — como en el diseño
+  const [activeCategory, setActiveCategory] = useState<string>(PLACE_CATEGORIES[0]?.id ?? "pharmacies")
+  const activeCategoryRef = useRef(activeCategory)
+  activeCategoryRef.current = activeCategory
 
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
 
-  // Dibuja / actualiza los marcadores de las categorías activas
+  const selectedCategory: PlaceCategory | undefined = PLACE_CATEGORIES.find((c) => c.id === activeCategory)
+
+  // Dibuja / actualiza los marcadores de la categoría activa y ajusta el encuadre
   function renderPlaceMarkers(map: google.maps.Map) {
     placeMarkers.current.forEach((m) => m.setMap(null))
     placeMarkers.current = []
 
-    PLACE_CATEGORIES.filter((c) => activeCategoriesRef.current.includes(c.id)).forEach((category) => {
-      category.places.forEach((place) => {
-        const marker = new google.maps.Marker({
-          position: { lat: place.lat, lng: place.lng },
-          map,
-          title: place.nombre,
-          icon: pinIcon(category.color, 1.3),
-          zIndex: 10,
-        })
-        marker.addListener("click", () => {
-          if (!infoWindow.current) return
-          infoWindow.current.setContent(
-            `<div style="max-width:220px;color:#111;">
-              <div style="font-weight:600;margin-bottom:4px;">${place.nombre}</div>
-              <a href="${place.maps}" target="_blank" rel="noreferrer" style="color:#2563eb;font-size:12px;text-decoration:underline;">
-                ${language === "es" ? "Ver en Google Maps" : "View on Google Maps"}
-              </a>
-            </div>`,
-          )
-          infoWindow.current.open(map, marker)
-        })
-        placeMarkers.current.push(marker)
+    const category = PLACE_CATEGORIES.find((c) => c.id === activeCategoryRef.current)
+    const bounds = new google.maps.LatLngBounds()
+    bounds.extend({ lat: STADIUM.lat, lng: STADIUM.lng })
+
+    category?.places.forEach((place) => {
+      const marker = new google.maps.Marker({
+        position: { lat: place.lat, lng: place.lng },
+        map,
+        title: place.nombre,
+        icon: pinIcon(category.color, 1.3),
+        zIndex: 10,
       })
+      marker.addListener("click", () => {
+        if (!infoWindow.current) return
+        infoWindow.current.setContent(
+          `<div style="max-width:220px;color:#111;">
+            <div style="font-weight:600;margin-bottom:4px;">${place.nombre}</div>
+            <a href="${place.maps}" target="_blank" rel="noreferrer" style="color:#2563eb;font-size:12px;text-decoration:underline;">
+              ${language === "es" ? "Ver en Google Maps" : "View on Google Maps"}
+            </a>
+          </div>`,
+        )
+        infoWindow.current.open(map, marker)
+      })
+      placeMarkers.current.push(marker)
+      bounds.extend({ lat: place.lat, lng: place.lng })
     })
+
+    // Encuadra el estadio + los lugares de la categoría, sin acercarse en exceso
+    if (!bounds.isEmpty()) {
+      google.maps.event.addListenerOnce(map, "bounds_changed", () => {
+        const z = map.getZoom()
+        if (typeof z === "number" && z > 16) map.setZoom(16)
+      })
+      map.fitBounds(bounds, 64)
+    }
   }
 
   // Inicializa (o recrea) el mapa. Se recrea al cambiar el tema porque
@@ -103,8 +137,8 @@ export function NearbyMap({ isDarkMode }: NearbyMapProps) {
         if (cancelled || !mapRef.current) return
 
         const map = new Map(mapRef.current, {
-          center: lastView.current.center,
-          zoom: lastView.current.zoom,
+          center: { lat: STADIUM.lat, lng: STADIUM.lng },
+          zoom: 15,
           // Estilo estándar de Google Maps (claro / oscuro nativo).
           // No se usan estilos personalizados: se muestran calles, parques,
           // transporte y POIs tal cual los ofrece Google.
@@ -137,15 +171,6 @@ export function NearbyMap({ isDarkMode }: NearbyMapProps) {
           infoWindow.current.open(mapInstance.current, stadiumMarker.current!)
         })
 
-        // Guarda la vista cuando el usuario mueve/zoomea el mapa
-        map.addListener("idle", () => {
-          const c = map.getCenter()
-          const z = map.getZoom()
-          if (c && typeof z === "number") {
-            lastView.current = { center: { lat: c.lat(), lng: c.lng() }, zoom: z }
-          }
-        })
-
         renderPlaceMarkers(map)
         setStatus("ready")
       })
@@ -165,81 +190,124 @@ export function NearbyMap({ isDarkMode }: NearbyMapProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [apiKey, isDarkMode])
 
-  // Redibuja los marcadores al cambiar la selección o el idioma
+  // Redibuja los marcadores al cambiar la categoría o el idioma
   useEffect(() => {
     if (status !== "ready" || !mapInstance.current) return
     renderPlaceMarkers(mapInstance.current)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeCategories, language, status])
+  }, [activeCategory, language, status])
 
-  const toggleCategory = (id: string) => {
-    setActiveCategories((prev) =>
-      prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id],
-    )
+  const chipClass = (category: PlaceCategory) => {
+    const active = activeCategory === category.id
+    return active
+      ? CHIP_ACTIVE[category.id] ?? "bg-primary text-primary-foreground border-primary"
+      : "border-border hover:bg-muted text-foreground"
   }
 
-  const categoryChipColor = (category: PlaceCategory, active: boolean) => {
-    if (!active) return "border-border hover:bg-muted text-foreground"
-    // color de fondo según categoría
-    if (category.id === "pharmacies") return "bg-red-500 text-white border-red-500"
-    return "bg-primary text-primary-foreground border-primary"
+  const renderTag = (place: NearbyPlace, categoryId: string) => {
+    const tags = Array.isArray(place.tag) ? place.tag : [place.tag]
+    return tags.map((tag, i) => (
+      <span key={i} className={`px-2 py-0.5 rounded-full text-xs font-medium ${TAG_COLOR[categoryId]}`}>
+        {tag}
+      </span>
+    ))
   }
 
   return (
-    <div className="rounded-xl overflow-hidden border border-border bg-card">
-      {/* Encabezado con selector de categorías */}
-      <div className="flex flex-wrap items-center gap-2 p-3 border-b border-border bg-muted/40">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground mr-1">
+    <div className="space-y-4">
+      {/* 1) Chips de categorías — "Servicios cerca del estadio" */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <MapPin className="w-4 h-4" />
           <span>{t("nearbyServices")}</span>
         </div>
-        {/* Chip fijo del estadio */}
-        <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-blue-600 text-white">
-          <span className="w-2.5 h-2.5 rounded-full bg-white" />
-          {language === "es" ? "Estadio" : "Stadium"}
-        </span>
-        {PLACE_CATEGORIES.map((category) => {
-          const active = activeCategories.includes(category.id)
-          return (
+        <div className="flex flex-wrap items-center gap-2">
+          {PLACE_CATEGORIES.map((category) => (
             <button
               key={category.id}
-              onClick={() => toggleCategory(category.id)}
-              aria-pressed={active}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-sm font-medium transition-colors ${categoryChipColor(category, active)}`}
+              onClick={() => setActiveCategory(category.id)}
+              aria-pressed={activeCategory === category.id}
+              className={`flex items-center gap-2 px-3 py-2 rounded-full border text-sm font-medium transition-all duration-200 ${chipClass(category)}`}
             >
               {CATEGORY_ICONS[category.id]}
-              {t(category.labelKey as never)}
+              <span>{t(category.labelKey as never)}</span>
             </button>
-          )
-        })}
+          ))}
+        </div>
       </div>
 
-      {/* Contenedor del mapa: responsive, ancho completo */}
-      <div className="relative w-full aspect-[16/11] sm:aspect-[16/9]">
-        <div ref={mapRef} className="absolute inset-0 h-full w-full" />
+      {/* 2) Mapa de Google — responsive, ancho completo */}
+      <div className="rounded-xl overflow-hidden border border-border bg-card">
+        <div className="relative w-full aspect-[16/11] sm:aspect-[16/9]">
+          <div ref={mapRef} className="absolute inset-0 h-full w-full" />
 
-        {status === "loading" && (
-          <div className="absolute inset-0 flex items-center justify-center bg-muted/60 backdrop-blur-sm">
-            <div className="flex flex-col items-center gap-2 text-muted-foreground">
-              <div className="w-6 h-6 rounded-full border-2 border-current border-t-transparent animate-spin" />
-              <span className="text-sm">{language === "es" ? "Cargando mapa..." : "Loading map..."}</span>
+          {status === "loading" && (
+            <div className="absolute inset-0 flex items-center justify-center bg-muted/60 backdrop-blur-sm">
+              <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                <div className="w-6 h-6 rounded-full border-2 border-current border-t-transparent animate-spin" />
+                <span className="text-sm">{language === "es" ? "Cargando mapa..." : "Loading map..."}</span>
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {status === "error" && (
-          <div className="absolute inset-0 flex items-center justify-center bg-muted/60 p-6 text-center">
-            <div className="flex flex-col items-center gap-2 text-muted-foreground max-w-sm">
-              <AlertCircle className="w-6 h-6 text-destructive" />
-              <span className="text-sm">
-                {language === "es"
-                  ? "No se pudo cargar el mapa. Verifica la clave de Google Maps."
-                  : "The map could not be loaded. Check the Google Maps API key."}
-              </span>
+          {status === "error" && (
+            <div className="absolute inset-0 flex items-center justify-center bg-muted/60 p-6 text-center">
+              <div className="flex flex-col items-center gap-2 text-muted-foreground max-w-sm">
+                <AlertCircle className="w-6 h-6 text-destructive" />
+                <span className="text-sm">
+                  {language === "es"
+                    ? "No se pudo cargar el mapa. Verifica la clave de Google Maps."
+                    : "The map could not be loaded. Check the Google Maps API key."}
+                </span>
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
+
+      {/* 3) Lista "Lugares cercanos" de la categoría activa */}
+      {selectedCategory && selectedCategory.places.length > 0 && (
+        <div className="rounded-xl border border-border bg-card overflow-hidden">
+          <div className="px-4 py-3 border-b border-border bg-muted/50">
+            <h3 className="font-semibold text-sm flex items-center gap-2">
+              <MapPin className="w-4 h-4" />
+              {t("nearbyPlaces")}
+            </h3>
+          </div>
+          <div className="divide-y divide-border">
+            {selectedCategory.places.map((place) => (
+              <div
+                key={place.id}
+                className="px-4 py-3 flex items-center justify-between gap-3 hover:bg-muted/30 transition-colors"
+              >
+                <div className="flex items-start gap-3">
+                  <div className={`mt-0.5 ${ICON_COLOR[selectedCategory.id]}`}>
+                    {CATEGORY_ICONS[selectedCategory.id]}
+                  </div>
+                  <div className="space-y-1">
+                    <h4 className="font-medium text-sm">{place.nombre}</h4>
+                    <p className="text-xs text-muted-foreground">{place.address}</p>
+                    <div className="flex items-center gap-2 text-xs flex-wrap">
+                      <span className="text-muted-foreground">Google Maps</span>
+                      <span className="text-muted-foreground">•</span>
+                      {renderTag(place, selectedCategory.id)}
+                    </div>
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="shrink-0 border-blue-500 text-blue-600 hover:bg-blue-600 hover:text-white hover:border-blue-600 dark:text-blue-400 dark:border-blue-400 dark:hover:bg-blue-600 dark:hover:text-white"
+                  onClick={() => window.open(place.maps, "_blank")}
+                >
+                  <Navigation className="w-4 h-4 mr-1" />
+                  {t("howToGetThere")}
+                </Button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
