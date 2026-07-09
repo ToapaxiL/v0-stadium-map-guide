@@ -148,7 +148,7 @@ export function NavigationGuide({ onRouteActiveChange }: { onRouteActiveChange?:
             </label>
             <NativeSelect
               value={from}
-              onChange={v => { setFrom(v); setResult(null) }}
+              onChange={v => setFrom(v)}
               placeholder={language === "es" ? "Selecciona tu ubicación actual" : "Select your current location"}
               lang={language}
             />
@@ -182,7 +182,7 @@ export function NavigationGuide({ onRouteActiveChange }: { onRouteActiveChange?:
             </label>
             <NativeSelect
               value={to}
-              onChange={v => { setTo(v); setResult(null) }}
+              onChange={v => setTo(v)}
               placeholder={language === "es" ? "Selecciona tu destino" : "Select your destination"}
               lang={language}
             />
