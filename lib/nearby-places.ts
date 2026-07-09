@@ -29,7 +29,7 @@ export const PLACE_CATEGORIES: PlaceCategory[] = [
   {
     id: "pharmacies",
     labelKey: "pharmacies",
-    color: "#ef4444", // rojo
+    color: "#f96969", // rojo de marca (energía, cercanía)
     places: [
       {
         id: 1,
@@ -81,7 +81,7 @@ export const PLACE_CATEGORIES: PlaceCategory[] = [
   {
     id: "transport",
     labelKey: "transport",
-    color: "#3b82f6", // azul
+    color: "#a4defc", // azul claro de marca (amplitud, frescura)
     places: [
       {
         id: 1,
@@ -106,7 +106,7 @@ export const PLACE_CATEGORIES: PlaceCategory[] = [
   {
     id: "hospitals",
     labelKey: "hospitals",
-    color: "#22c55e", // verde
+    color: "#42c15a", // verde de marca (biodiversidad, naturaleza)
     places: [
       {
         id: 1,
@@ -122,7 +122,7 @@ export const PLACE_CATEGORIES: PlaceCategory[] = [
   {
     id: "atm",
     labelKey: "atm",
-    color: "#10b981", // esmeralda
+    color: "#fabb10", // amarillo de marca (calidez, alegría)
     places: [
       {
         id: 1,
