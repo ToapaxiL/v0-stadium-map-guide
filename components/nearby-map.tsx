@@ -7,7 +7,9 @@ import { STADIUM, PLACE_CATEGORIES, type PlaceCategory, type NearbyPlace } from 
 import { Button } from "@/components/ui/button"
 import { Pill, Bus, Hospital, Banknote, MapPin, AlertCircle, Navigation } from "lucide-react"
 
-const STADIUM_COLOR = "#2563eb" // azul
+// Color del estadio: azul andino de marca. Distinto de todas las categorías
+// para diferenciar el punto principal del resto de servicios.
+const STADIUM_COLOR = "#1e345b"
 
 // Iconos por categoría (chips + lista)
 const CATEGORY_ICONS: Record<string, React.ReactNode> = {
@@ -17,28 +19,48 @@ const CATEGORY_ICONS: Record<string, React.ReactNode> = {
   atm: <Banknote className="w-4 h-4" />,
 }
 
-// Color del chip activo por categoría
-const CHIP_ACTIVE: Record<string, string> = {
-  pharmacies: "bg-red-500 text-white border-red-500",
-  transport: "bg-blue-500 text-white border-blue-500",
-  hospitals: "bg-green-500 text-white border-green-500",
-  atm: "bg-emerald-500 text-white border-emerald-500",
+// --- Utilidades de color de marca ---
+// Los colores viven en lib/nearby-places.ts (paleta oficial). Aquí derivamos
+// variantes legibles para chips activos, badges e iconos en claro y oscuro.
+function hexToRgb(hex: string) {
+  const h = hex.replace("#", "")
+  const full = h.length === 3 ? h.split("").map((c) => c + c).join("") : h
+  const n = parseInt(full, 16)
+  return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 }
 }
 
-// Color de la etiqueta (badge) de la lista por categoría
-const TAG_COLOR: Record<string, string> = {
-  pharmacies: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
-  transport: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
-  hospitals: "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300",
-  atm: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
+function rgba(hex: string, a: number) {
+  const { r, g, b } = hexToRgb(hex)
+  return `rgba(${r}, ${g}, ${b}, ${a})`
 }
 
-// Color del icono de la lista por categoría
-const ICON_COLOR: Record<string, string> = {
-  pharmacies: "text-red-600 dark:text-red-400",
-  transport: "text-blue-600 dark:text-blue-400",
-  hospitals: "text-green-600 dark:text-green-400",
-  atm: "text-emerald-600 dark:text-emerald-400",
+// Luminancia relativa aproximada (0 = oscuro, 1 = claro)
+function luminance(hex: string) {
+  const { r, g, b } = hexToRgb(hex)
+  return (0.299 * r + 0.587 * g + 0.114 * b) / 255
+}
+
+// Texto legible sobre un fondo sólido del color dado (blanco o azul andino)
+function textOnFill(hex: string) {
+  return luminance(hex) > 0.6 ? "#1e345b" : "#ffffff"
+}
+
+// Mezcla un color con blanco o negro para asegurar contraste sobre la tarjeta
+function mix(hex: string, target: "#ffffff" | "#000000", ratio: number) {
+  const c = hexToRgb(hex)
+  const t = hexToRgb(target)
+  const m = (a: number, b: number) => Math.round(a * (1 - ratio) + b * ratio)
+  return `rgb(${m(c.r, t.r)}, ${m(c.g, t.g)}, ${m(c.b, t.b)})`
+}
+
+// Color de texto/icono legible sobre la tarjeta de la lista, según el tema
+function textOnCard(hex: string, isDark: boolean) {
+  if (isDark) {
+    // en oscuro: aclarar los colores apagados para que resalten
+    return luminance(hex) < 0.5 ? mix(hex, "#ffffff", 0.35) : hex
+  }
+  // en claro: oscurecer los colores muy claros (amarillo, azul claro)
+  return luminance(hex) > 0.6 ? mix(hex, "#000000", 0.45) : hex
 }
 
 // Marcador SVG en forma de pin, coloreado
@@ -159,7 +181,7 @@ export function NearbyMap({ isDarkMode }: NearbyMapProps) {
           position: { lat: STADIUM.lat, lng: STADIUM.lng },
           map,
           title: STADIUM.nombre,
-          icon: pinIcon(STADIUM_COLOR, 1.9),
+          icon: pinIcon(STADIUM_COLOR, 1.3),
           zIndex: 9999,
           animation: google.maps.Animation.DROP,
         })
@@ -199,9 +221,17 @@ export function NearbyMap({ isDarkMode }: NearbyMapProps) {
 
   const chipClass = (category: PlaceCategory) => {
     const active = activeCategory === category.id
-    return active
-      ? CHIP_ACTIVE[category.id] ?? "bg-primary text-primary-foreground border-primary"
-      : "border-border hover:bg-muted text-foreground"
+    return active ? "" : "border-border hover:bg-muted text-foreground"
+  }
+
+  // Estilo del chip activo con el color de marca de la categoría
+  const chipStyle = (category: PlaceCategory): React.CSSProperties | undefined => {
+    if (activeCategory !== category.id) return undefined
+    return {
+      backgroundColor: category.color,
+      borderColor: category.color,
+      color: textOnFill(category.color),
+    }
   }
 
   // Abre la ruta hacia el lugar según el dispositivo:
@@ -227,10 +257,17 @@ export function NearbyMap({ isDarkMode }: NearbyMapProps) {
     window.open(url, "_blank", "noopener,noreferrer")
   }
 
-  const renderTag = (place: NearbyPlace, categoryId: string) => {
+  const renderTag = (place: NearbyPlace, categoryColor: string) => {
     const tags = Array.isArray(place.tag) ? place.tag : [place.tag]
     return tags.map((tag, i) => (
-      <span key={i} className={`px-2 py-0.5 rounded-full text-xs font-medium ${TAG_COLOR[categoryId]}`}>
+      <span
+        key={i}
+        className="px-2 py-0.5 rounded-full text-xs font-medium"
+        style={{
+          backgroundColor: rgba(categoryColor, isDarkMode ? 0.22 : 0.16),
+          color: textOnCard(categoryColor, isDarkMode),
+        }}
+      >
         {tag}
       </span>
     ))
@@ -250,6 +287,7 @@ export function NearbyMap({ isDarkMode }: NearbyMapProps) {
               key={category.id}
               onClick={() => setActiveCategory(category.id)}
               aria-pressed={activeCategory === category.id}
+              style={chipStyle(category)}
               className={`flex items-center gap-2 px-3 py-2 rounded-full border text-sm font-medium transition-all duration-200 ${chipClass(category)}`}
             >
               {CATEGORY_ICONS[category.id]}
@@ -304,7 +342,7 @@ export function NearbyMap({ isDarkMode }: NearbyMapProps) {
                 className="px-4 py-3 flex items-center justify-between gap-3 hover:bg-muted/30 transition-colors"
               >
                 <div className="flex items-start gap-3">
-                  <div className={`mt-0.5 ${ICON_COLOR[selectedCategory.id]}`}>
+                  <div className="mt-0.5" style={{ color: textOnCard(selectedCategory.color, isDarkMode) }}>
                     {CATEGORY_ICONS[selectedCategory.id]}
                   </div>
                   <div className="space-y-1">
@@ -313,14 +351,18 @@ export function NearbyMap({ isDarkMode }: NearbyMapProps) {
                     <div className="flex items-center gap-2 text-xs flex-wrap">
                       <span className="text-muted-foreground">Google Maps</span>
                       <span className="text-muted-foreground">•</span>
-                      {renderTag(place, selectedCategory.id)}
+                      {renderTag(place, selectedCategory.color)}
                     </div>
                   </div>
                 </div>
                 <Button
                   variant="outline"
                   size="sm"
-                  className="shrink-0 border-blue-500 text-blue-600 hover:bg-blue-600 hover:text-white hover:border-blue-600 dark:text-blue-400 dark:border-blue-400 dark:hover:bg-blue-600 dark:hover:text-white"
+                  className="shrink-0 transition-colors"
+                  style={{
+                    borderColor: STADIUM_COLOR,
+                    color: isDarkMode ? mix(STADIUM_COLOR, "#ffffff", 0.55) : STADIUM_COLOR,
+                  }}
                   onClick={() => handleDirections(place)}
                 >
                   <Navigation className="w-4 h-4 mr-1" />
