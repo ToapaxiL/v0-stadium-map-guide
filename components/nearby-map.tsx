@@ -159,7 +159,7 @@ export function NearbyMap({ isDarkMode }: NearbyMapProps) {
           position: { lat: STADIUM.lat, lng: STADIUM.lng },
           map,
           title: STADIUM.nombre,
-          icon: pinIcon(STADIUM_COLOR, 1.9),
+          icon: pinIcon(STADIUM_COLOR, 1.3),
           zIndex: 9999,
           animation: google.maps.Animation.DROP,
         })
