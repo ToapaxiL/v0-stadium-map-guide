@@ -40,11 +40,6 @@ function luminance(hex: string) {
   return (0.299 * r + 0.587 * g + 0.114 * b) / 255
 }
 
-// Texto legible sobre un fondo sólido del color dado (blanco o azul andino)
-function textOnFill(hex: string) {
-  return luminance(hex) > 0.6 ? "#1e345b" : "#ffffff"
-}
-
 // Mezcla un color con blanco o negro para asegurar contraste sobre la tarjeta
 function mix(hex: string, target: "#ffffff" | "#000000", ratio: number) {
   const c = hexToRgb(hex)
@@ -94,6 +89,9 @@ export function NearbyMap({ isDarkMode }: NearbyMapProps) {
   const [activeCategory, setActiveCategory] = useState<string>(PLACE_CATEGORIES[0]?.id ?? "pharmacies")
   const activeCategoryRef = useRef(activeCategory)
   activeCategoryRef.current = activeCategory
+  // Id del lugar cuyo botón "Cómo llegar" está en hover, para rellenarlo con el
+  // color del estadio y poner texto/icono en blanco.
+  const [hoveredPlace, setHoveredPlace] = useState<string | null>(null)
 
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
 
@@ -224,13 +222,15 @@ export function NearbyMap({ isDarkMode }: NearbyMapProps) {
     return active ? "" : "border-border hover:bg-muted text-foreground"
   }
 
-  // Estilo del chip activo con el color de marca de la categoría
+  // Estilo del chip activo con el color de marca de la categoría.
+  // El texto y el icono siempre van en blanco (como en Hospitales), sin
+  // importar el color de la categoría, para un estado activo uniforme.
   const chipStyle = (category: PlaceCategory): React.CSSProperties | undefined => {
     if (activeCategory !== category.id) return undefined
     return {
       backgroundColor: category.color,
       borderColor: category.color,
-      color: textOnFill(category.color),
+      color: "#ffffff",
     }
   }
 
@@ -354,8 +354,6 @@ export function NearbyMap({ isDarkMode }: NearbyMapProps) {
                         <h4 className="font-medium text-sm">{place.nombre}</h4>
                         <p className="text-xs text-muted-foreground">{place.address}</p>
                         <div className="flex items-center gap-2 text-xs flex-wrap">
-                          <span className="text-muted-foreground">Google Maps</span>
-                          <span className="text-muted-foreground">•</span>
                           {renderTag(place, selectedCategory.color)}
                         </div>
                       </div>
@@ -364,10 +362,18 @@ export function NearbyMap({ isDarkMode }: NearbyMapProps) {
                       variant="outline"
                       size="sm"
                       className="shrink-0 transition-colors"
-                      style={{
-                        borderColor: STADIUM_COLOR,
-                        color: isDarkMode ? mix(STADIUM_COLOR, "#ffffff", 0.55) : STADIUM_COLOR,
-                      }}
+                      style={
+                        hoveredPlace === place.id
+                          ? { backgroundColor: STADIUM_COLOR, borderColor: STADIUM_COLOR, color: "#ffffff" }
+                          : {
+                              borderColor: STADIUM_COLOR,
+                              color: isDarkMode ? mix(STADIUM_COLOR, "#ffffff", 0.55) : STADIUM_COLOR,
+                            }
+                      }
+                      onMouseEnter={() => setHoveredPlace(place.id)}
+                      onMouseLeave={() => setHoveredPlace(null)}
+                      onFocus={() => setHoveredPlace(place.id)}
+                      onBlur={() => setHoveredPlace(null)}
                       onClick={() => handleDirections(place)}
                     >
                       <Navigation className="w-4 h-4 mr-1" />

@@ -219,7 +219,7 @@ export function NavigationGuide({ onRouteActiveChange }: { onRouteActiveChange?:
                   "transition-all focus:outline-none focus:ring-2 focus:ring-border"
                 )}
               >
-                {language === "es" ? "Limpiar" : "Clear"}
+                {language === "es" ? "Borrar" : "Clear"}
               </button>
             )}
           </div>
