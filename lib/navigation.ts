@@ -138,6 +138,9 @@ const T = {
     viaPlazoleta:   "Pasa por la Plazoleta",
     passageP4P5:    "Desde General Sur Baja (Puerta 4) accede a Tribuna Sur Oriental (Puerta 5) a través del paso habilitado",
     passageP8P9:    "Desde Tribuna Norte Oriental (Puerta 8) accede a General Norte Oriental (Puerta 9) a través del paso habilitado",
+    passageP9P8:    "Desde General Norte Oriental (Puerta 9) accede a Tribuna Norte Oriental (Puerta 8) a través del paso habilitado",
+    passageP6P7:    "Cruza del Palco Sur Oriental (Puerta 6) al Palco Norte Oriental (Puerta 7) por el paso interno habilitado entre palcos",
+    passageP7P6:    "Cruza del Palco Norte Oriental (Puerta 7) al Palco Sur Oriental (Puerta 6) por el paso interno habilitado entre palcos",
     passageP11P2:   "Cruza del Palco Norte Occidental (Puerta 11) al Palco Sur Occidental (Puerta 2) por el paso interno habilitado entre palcos",
     passageP2P11:   "Cruza del Palco Sur Occidental (Puerta 2) al Palco Norte Occidental (Puerta 11) por el paso interno habilitado entre palcos",
   },
@@ -153,6 +156,9 @@ const T = {
     viaPlazoleta:   "Pass through the Plaza",
     passageP4P5:    "From General Sur Baja (Gate 4) you can reach Tribuna Sur Oriental (Gate 5) through the passage enabled between both sections",
     passageP8P9:    "From Tribuna Norte Oriental (Gate 8) you can reach General Norte Oriental (Gate 9) through the enabled passage",
+    passageP9P8:    "From General Norte Oriental (Gate 9) you can reach Tribuna Norte Oriental (Gate 8) through the enabled passage",
+    passageP6P7:    "Cross from South East Box (Gate 6) to North East Box (Gate 7) through the internal passage enabled between the boxes",
+    passageP7P6:    "Cross from North East Box (Gate 7) to South East Box (Gate 6) through the internal passage enabled between the boxes",
     passageP11P2:   "Cross from North West Box (Gate 11) to South West Box (Gate 2) through the internal passage enabled between the boxes",
     passageP2P11:   "Cross from South West Box (Gate 2) to North West Box (Gate 11) through the internal passage enabled between the boxes",
   },
@@ -164,6 +170,15 @@ const T = {
 // Plazoleta = Puerta 1
 const PLAZOLETA_GATE = 1
 
+// Modelo físico de conexión entre puertas contiguas del estadio.
+// Cada salto entre dos puertas vecinas es UNA de estas transiciones:
+//   · Paso interno entre palcos → sin salir del estadio (P6↔P7, P11↔P2 aparte).
+//   · Paso habilitado → conexión interior concreta (P8↔P9).
+//   · Paso por la Plazoleta (P1) → zona abierta que enlaza con el Palco Sur Occ.
+//   · Cualquier otra pareja contigua → hay que SALIR por una puerta e INGRESAR
+//     por la siguiente (transición exterior).
+// walkInternal narra el recorrido dentro de un mismo tramo puerta por puerta,
+// aclarando en cada salto qué ocurre (salir/entrar o cruzar un paso interno).
 function walkInternal(
   steps: RouteStep[],
   from: number,
@@ -177,94 +192,33 @@ function walkInternal(
   if (fi === -1 || ti === -1) return
   const t = T[lang]
 
-  // ── Acceso interno P8 ↔ P9 en TRAMO_2 ──
-  // Ahora existe un pasillo interior que conecta Tribuna Norte Oriental (P8) con
-  // General Norte Oriental (P9): ya NO es necesario salir por la Puerta 7-8. Con
-  // ello TODO el lado oriental [P5, P6, P7, P8, P9] queda conectado internamente,
-  // por lo que el recorrido genérico de abajo lo resuelve como un simple paseo
-  // por el pasillo interior (sin tramos exteriores).
-
+  // Secuencia ordenada de puertas contiguas entre 'from' y 'to' (incluidas).
   const dir = fi < ti ? 1 : -1
-  const mid: number[] = []
-  for (let i = fi + dir; i !== ti; i += dir) mid.push(tramo[i])
+  const ordered: number[] = []
+  for (let i = fi; i !== ti + dir; i += dir) ordered.push(tramo[i])
 
-  // ── Cruce del paso habilitado P8 (Tribuna Norte Oriental) ↔ P9 (General
-  // Norte Oriental) ──
-  // Cuando el recorrido interior atraviesa el límite entre P8 y P9, se parte el
-  // paseo en dos tramos e inserta SIEMPRE la nota del paso habilitado en el
-  // punto exacto del cruce.
-  const ordered = [from, ...mid, to]
-  let crossIdx = -1
-  for (let i = 0; i < ordered.length - 1; i++) {
-    const a = ordered[i]
-    const b = ordered[i + 1]
-    if ((a === 8 && b === 9) || (a === 9 && b === 8)) { crossIdx = i; break }
-  }
-  if (crossIdx !== -1) {
-    const leftMids = ordered.slice(1, crossIdx + 1)   // secciones hasta el cruce
-    const rightMids = ordered.slice(crossIdx + 1, -1) // secciones tras el cruce
-    if (leftMids.length > 0) {
-      steps.push({
-        type: "internal",
-        instruction: t.walkCorridor,
-        detail: t.passesBy(joinList(leftMids.map(g => gateSectionLabel(g, lang)), lang)),
-        icon: "walk",
-      })
+  for (let k = 0; k < ordered.length - 1; k++) {
+    const a = ordered[k]
+    const b = ordered[k + 1]
+
+    // Palco Sur Oriental (P6) ↔ Palco Norte Oriental (P7): paso interno entre palcos.
+    if ((a === 6 && b === 7) || (a === 7 && b === 6)) {
+      steps.push({ type: "internal", instruction: a === 6 ? t.passageP6P7 : t.passageP7P6, icon: "enter" })
+      continue
     }
-    steps.push({ type: "internal", instruction: t.passageP8P9, icon: "enter" })
-    if (rightMids.length > 0) {
-      steps.push({
-        type: "internal",
-        instruction: t.walkCorridor,
-        detail: t.passesBy(joinList(rightMids.map(g => gateSectionLabel(g, lang)), lang)),
-        icon: "walk",
-      })
+    // Tribuna Norte Oriental (P8) ↔ General Norte Oriental (P9): paso habilitado.
+    if ((a === 8 && b === 9) || (a === 9 && b === 8)) {
+      steps.push({ type: "internal", instruction: a === 8 ? t.passageP8P9 : t.passageP9P8, icon: "enter" })
+      continue
     }
-    return
-  }
-
-  const passesPlazoleta = mid.includes(PLAZOLETA_GATE)
-
-  if (passesPlazoleta) {
-    const plazaIdx = mid.indexOf(PLAZOLETA_GATE)
-    const before = mid.slice(0, plazaIdx).filter(g => g !== PLAZOLETA_GATE)
-    const after  = mid.slice(plazaIdx + 1).filter(g => g !== PLAZOLETA_GATE)
-
-    // Segmento antes de la plazoleta (solo si hay tramo real)
-    if (before.length > 0) {
-      steps.push({
-        type: "internal",
-        instruction: t.walkCorridor,
-        detail: t.passesBy(joinList(before.map(g => gateSectionLabel(g, lang)), lang)),
-        icon: "walk",
-      })
+    // Paso por la Plazoleta (P1): zona abierta que conecta con el Palco Sur Occidental.
+    if (a === PLAZOLETA_GATE || b === PLAZOLETA_GATE) {
+      steps.push({ type: "internal", instruction: t.viaPlazoleta, icon: "walk" })
+      continue
     }
-
-    // Paso por la plazoleta
-    steps.push({
-      type: "internal",
-      instruction: t.viaPlazoleta,
-      icon: "walk",
-    })
-
-    // Segmento después de la plazoleta (solo si hay tramo real)
-    if (after.length > 0) {
-      steps.push({
-        type: "internal",
-        instruction: t.walkCorridor,
-        detail: t.passesBy(joinList(after.map(g => gateSectionLabel(g, lang)), lang)),
-        icon: "walk",
-      })
-    }
-  } else {
-    steps.push({
-      type: "internal",
-      instruction: t.walkCorridor,
-      detail: mid.length > 0
-        ? t.passesBy(joinList(mid.map(g => gateSectionLabel(g, lang)), lang))
-        : t.towards(gateSectionLabel(to, lang)),
-      icon: "walk",
-    })
+    // Resto de puertas contiguas: sin conexión interna → salir de una e ingresar a la otra.
+    steps.push({ type: "external", instruction: t.exitGate(a), icon: "exit" })
+    steps.push({ type: "external", instruction: t.enterGate(b), icon: "enter" })
   }
 }
 
