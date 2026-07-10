@@ -131,6 +131,8 @@ const T = {
     passesBy:       (sections: string) => `Pasas por ${sections}`,
     towards:        (section: string) => `Avanza hacia ${section}`,
     exitGate:       (g: number | string) => `Sal por Puerta ${g} al exterior`,
+    hopExit:        (g: number | string) => `Sal por Puerta ${g}`,
+    continueOriental: (g: number | string) => `Continúa por la parte oriental hasta la Puerta ${g}`,
     walkStreet:     (s: string) => `Camina por ${s}`,
     continueStreet: (s: string) => `Continúa por ${s}`,
     enterGate:      (g: number | string) => `Entra por Puerta ${g}`,
@@ -138,12 +140,19 @@ const T = {
     viaPlazoleta:   "Pasa por la Plazoleta",
     passageP4P5:    "Desde General Sur Baja (Puerta 4) accede a Tribuna Sur Oriental (Puerta 5) a través del paso habilitado",
     passageP8P9:    "Desde Tribuna Norte Oriental (Puerta 8) accede a General Norte Oriental (Puerta 9) a través del paso habilitado",
+    passageP9P8:    "Desde General Norte Oriental (Puerta 9) accede a Tribuna Norte Oriental (Puerta 8) a través del paso habilitado",
+    passageP6P7:    "Cruza del Palco Sur Oriental (Puerta 6) al Palco Norte Oriental (Puerta 7) por el paso interno habilitado entre palcos",
+    passageP7P6:    "Cruza del Palco Norte Oriental (Puerta 7) al Palco Sur Oriental (Puerta 6) por el paso interno habilitado entre palcos",
+    passageP11P2:   "Cruza del Palco Norte Occidental (Puerta 11) al Palco Sur Occidental (Puerta 2) por el paso interno habilitado entre palcos",
+    passageP2P11:   "Cruza del Palco Sur Occidental (Puerta 2) al Palco Norte Occidental (Puerta 11) por el paso interno habilitado entre palcos",
   },
   en: {
     walkCorridor:   "Walk through the indoor corridor",
     passesBy:       (sections: string) => `You pass by ${sections}`,
     towards:        (section: string) => `Head toward ${section}`,
     exitGate:       (g: number | string) => `Exit through Gate ${g} to the exterior`,
+    hopExit:        (g: number | string) => `Exit through Gate ${g}`,
+    continueOriental: (g: number | string) => `Continue along the eastern side to Gate ${g}`,
     walkStreet:     (s: string) => `Walk along ${s}`,
     continueStreet: (s: string) => `Continue along ${s}`,
     enterGate:      (g: number | string) => `Enter through Gate ${g}`,
@@ -151,6 +160,11 @@ const T = {
     viaPlazoleta:   "Pass through the Plaza",
     passageP4P5:    "From General Sur Baja (Gate 4) you can reach Tribuna Sur Oriental (Gate 5) through the passage enabled between both sections",
     passageP8P9:    "From Tribuna Norte Oriental (Gate 8) you can reach General Norte Oriental (Gate 9) through the enabled passage",
+    passageP9P8:    "From General Norte Oriental (Gate 9) you can reach Tribuna Norte Oriental (Gate 8) through the enabled passage",
+    passageP6P7:    "Cross from South East Box (Gate 6) to North East Box (Gate 7) through the internal passage enabled between the boxes",
+    passageP7P6:    "Cross from North East Box (Gate 7) to South East Box (Gate 6) through the internal passage enabled between the boxes",
+    passageP11P2:   "Cross from North West Box (Gate 11) to South West Box (Gate 2) through the internal passage enabled between the boxes",
+    passageP2P11:   "Cross from South West Box (Gate 2) to North West Box (Gate 11) through the internal passage enabled between the boxes",
   },
 }
 
@@ -160,12 +174,29 @@ const T = {
 // Plazoleta = Puerta 1
 const PLAZOLETA_GATE = 1
 
+// Modelo físico de conexión entre puertas contiguas del estadio.
+// Cada salto entre dos puertas vecinas es UNA de estas transiciones:
+//   · Paso interno entre palcos → sin salir del estadio (P6↔P7, P11↔P2 aparte).
+//   · Paso habilitado → conexión interior concreta (P8↔P9).
+//   · Paso por la Plazoleta (P1) → zona abierta que enlaza con el Palco Sur Occ.
+//   · Cualquier otra pareja contigua → se SALE por una puerta y se INGRESA por
+//     la siguiente. Estos saltos NO se consideran "exterior" (no rodean el
+//     estadio por la calle): solo se camina de una puerta a la contigua.
+// walkInternal narra el recorrido dentro de un mismo tramo puerta por puerta,
+// aclarando en cada salto qué ocurre (salir/entrar o cruzar un paso interno).
+// opts.startTransit / opts.endTransit marcan que la puerta inicial o final del
+// recorrido es solo un punto de TRÁNSITO al que se llega (o del que se sale) por
+// un paso habilitado, sin entrar realmente a esa sección. En ese caso no se dice
+// "Sal/Entra por esa puerta": el movimiento se narra como "Continúa por la parte
+// oriental hasta la Puerta X". Se usa con el paso habilitado P4 (General Sur) ↔
+// P5 (Tribuna Sur Oriental), donde nunca se pisa la Puerta 5.
 function walkInternal(
   steps: RouteStep[],
   from: number,
   to: number,
   tramo: number[],
-  lang: "es" | "en" = "es"
+  lang: "es" | "en" = "es",
+  opts?: { startTransit?: boolean; endTransit?: boolean }
 ) {
   if (from === to) return
   const fi = tramo.indexOf(from)
@@ -173,94 +204,60 @@ function walkInternal(
   if (fi === -1 || ti === -1) return
   const t = T[lang]
 
-  // ── Acceso interno P8 ↔ P9 en TRAMO_2 ──
-  // Ahora existe un pasillo interior que conecta Tribuna Norte Oriental (P8) con
-  // General Norte Oriental (P9): ya NO es necesario salir por la Puerta 7-8. Con
-  // ello TODO el lado oriental [P5, P6, P7, P8, P9] queda conectado internamente,
-  // por lo que el recorrido genérico de abajo lo resuelve como un simple paseo
-  // por el pasillo interior (sin tramos exteriores).
-
+  // Secuencia ordenada de puertas contiguas entre 'from' y 'to' (incluidas).
   const dir = fi < ti ? 1 : -1
-  const mid: number[] = []
-  for (let i = fi + dir; i !== ti; i += dir) mid.push(tramo[i])
+  const ordered: number[] = []
+  for (let i = fi; i !== ti + dir; i += dir) ordered.push(tramo[i])
 
-  // ── Cruce del paso habilitado P8 (Tribuna Norte Oriental) ↔ P9 (General
-  // Norte Oriental) ──
-  // Cuando el recorrido interior atraviesa el límite entre P8 y P9, se parte el
-  // paseo en dos tramos e inserta SIEMPRE la nota del paso habilitado en el
-  // punto exacto del cruce.
-  const ordered = [from, ...mid, to]
-  let crossIdx = -1
-  for (let i = 0; i < ordered.length - 1; i++) {
-    const a = ordered[i]
-    const b = ordered[i + 1]
-    if ((a === 8 && b === 9) || (a === 9 && b === 8)) { crossIdx = i; break }
-  }
-  if (crossIdx !== -1) {
-    const leftMids = ordered.slice(1, crossIdx + 1)   // secciones hasta el cruce
-    const rightMids = ordered.slice(crossIdx + 1, -1) // secciones tras el cruce
-    if (leftMids.length > 0) {
-      steps.push({
-        type: "internal",
-        instruction: t.walkCorridor,
-        detail: t.passesBy(joinList(leftMids.map(g => gateSectionLabel(g, lang)), lang)),
-        icon: "walk",
-      })
+  // Bypass del sector de palcos orientales (P6/P7): el paso entre palcos SOLO se
+  // usa cuando el origen o el destino es un palco (P6 o P7). Si únicamente se
+  // atraviesa el lado oriental (p. ej. de P5 hacia P8/P9), NO se entra a ese
+  // sector: se camina por el exterior directamente de la Puerta 5 a la Puerta 8,
+  // omitiendo las puertas 6 y 7 de las indicaciones.
+  const endpointIsPalco = from === 6 || from === 7 || to === 6 || to === 7
+  const seq =
+    !endpointIsPalco && ordered.includes(6) && ordered.includes(7)
+      ? ordered.filter((g) => g !== 6 && g !== 7)
+      : ordered
+
+  for (let k = 0; k < seq.length - 1; k++) {
+    const a = seq[k]
+    const b = seq[k + 1]
+
+    // Palco Sur Oriental (P6) ↔ Palco Norte Oriental (P7): paso interno entre palcos.
+    if ((a === 6 && b === 7) || (a === 7 && b === 6)) {
+      steps.push({ type: "internal", instruction: a === 6 ? t.passageP6P7 : t.passageP7P6, icon: "enter" })
+      continue
     }
-    steps.push({ type: "internal", instruction: t.passageP8P9, icon: "enter" })
-    if (rightMids.length > 0) {
-      steps.push({
-        type: "internal",
-        instruction: t.walkCorridor,
-        detail: t.passesBy(joinList(rightMids.map(g => gateSectionLabel(g, lang)), lang)),
-        icon: "walk",
-      })
+    // Tribuna Norte Oriental (P8) ↔ General Norte Oriental (P9): paso habilitado.
+    if ((a === 8 && b === 9) || (a === 9 && b === 8)) {
+      steps.push({ type: "internal", instruction: a === 8 ? t.passageP8P9 : t.passageP9P8, icon: "enter" })
+      continue
     }
-    return
-  }
-
-  const passesPlazoleta = mid.includes(PLAZOLETA_GATE)
-
-  if (passesPlazoleta) {
-    const plazaIdx = mid.indexOf(PLAZOLETA_GATE)
-    const before = mid.slice(0, plazaIdx).filter(g => g !== PLAZOLETA_GATE)
-    const after  = mid.slice(plazaIdx + 1).filter(g => g !== PLAZOLETA_GATE)
-
-    // Segmento antes de la plazoleta (solo si hay tramo real)
-    if (before.length > 0) {
-      steps.push({
-        type: "internal",
-        instruction: t.walkCorridor,
-        detail: t.passesBy(joinList(before.map(g => gateSectionLabel(g, lang)), lang)),
-        icon: "walk",
-      })
+    // Paso por la Plazoleta (P1): zona abierta que conecta con el Palco Sur Occidental.
+    if (a === PLAZOLETA_GATE || b === PLAZOLETA_GATE) {
+      steps.push({ type: "internal", instruction: t.viaPlazoleta, icon: "walk" })
+      continue
     }
-
-    // Paso por la plazoleta
-    steps.push({
-      type: "internal",
-      instruction: t.viaPlazoleta,
-      icon: "walk",
-    })
-
-    // Segmento después de la plazoleta (solo si hay tramo real)
-    if (after.length > 0) {
-      steps.push({
-        type: "internal",
-        instruction: t.walkCorridor,
-        detail: t.passesBy(joinList(after.map(g => gateSectionLabel(g, lang)), lang)),
-        icon: "walk",
-      })
+    // Salto plano con puerta de TRÁNSITO: no se entra ni se sale por esa puerta,
+    // solo se continúa por el lado oriental.
+    const isFirst = k === 0
+    const isLast = k === seq.length - 2
+    if (opts?.startTransit && isFirst) {
+      // 'a' es la puerta de tránsito (llegamos por el paso habilitado): continúa hacia 'b'.
+      steps.push({ type: "internal", instruction: t.continueOriental(b), icon: "walk" })
+      continue
     }
-  } else {
-    steps.push({
-      type: "internal",
-      instruction: t.walkCorridor,
-      detail: mid.length > 0
-        ? t.passesBy(joinList(mid.map(g => gateSectionLabel(g, lang)), lang))
-        : t.towards(gateSectionLabel(to, lang)),
-      icon: "walk",
-    })
+    if (opts?.endTransit && isLast) {
+      // 'b' es la puerta de tránsito (saldremos por el paso habilitado): solo se
+      // deja el paso previo; el walk hacia el paso habilitado lo añade el llamador.
+      steps.push({ type: "internal", instruction: t.hopExit(a), icon: "exit" })
+      continue
+    }
+    // Resto de puertas contiguas: salir por una e ingresar por la siguiente.
+    // Se marca como paso NO exterior (no rodea el estadio por la calle).
+    steps.push({ type: "internal", instruction: t.hopExit(a), icon: "exit" })
+    steps.push({ type: "internal", instruction: t.enterGate(b), icon: "enter" })
   }
 }
 
@@ -287,11 +284,11 @@ const PT = {
   p4AltaSeat:    { x: 670.291, y: 289.996 }, // General Sur Alta (P4)
   p4BajaSeat:    { x: 670.292, y: 229.997 }, // General Sur Baja (P4) — se llega SOLO desde Alta
 
-  // ── Lado Sur Oriental (continuación interna desde General Sur Baja) ──
+  // ── Lado Sur Oriental (continuación interna desde General Sur Baja) ─����
   p5Seat:        { x: 599.981, y: 170.31  }, // Tribuna Sur Oriental (P5)
   p6Seat:        { x: 537.972, y: 153.438 }, // Palco Sur Oriental (P6)
 
-  // ── Lado Norte Oriental (acceso por el OESTE, calle H. Vans Risn) ──
+  // ── Lado Norte Oriental (acceso por el OESTE, calle H. Vans Risn) ���─
   // A P7/P8 se entra por la Puerta 7-8 (arriba del 9W en la misma calle);
   // a General Norte Oriental (P9 Ori) se entra por 9W y se sube
   // pasando por General Norte Occidental.
@@ -441,6 +438,191 @@ function makeWestLoopRoute(north: number, south: number, dir: "n2s" | "s2n"): Sp
 }
 
 // ============================================================
+// Paso INTERNO entre palcos: Palco Norte Occidental (P11) ↔ Palco Sur
+// Occidental (P2). Es el ÚNICO punto de comunicación directa entre el Norte
+// Occidental y el Sur Occidental. Desde P11, todo el bloque Sur/Oriental
+// {P2, P3, P4 (Sur Alta/Baja), P5, P6, P7} se alcanza cruzando este paso a P2 y
+// siguiendo la ruta ya designada desde P2 (ver makePalcoNorthViaP2). Solo el
+// Norte Occidental interior (P9 General Norte Occ., P10 Tribuna Norte Occ.) y la
+// Plazoleta (P1) siguen usando el recorrido exterior por la Puerta 10-11 → La
+// Esperanza → Puerta 1. La polilínea P11 → P2 dibuja la unión visual entre
+// ambos palcos.
+// ============================================================
+function makePalcoLinkRoute(dir: "n2s" | "s2n"): SpecialRouteBuilder {
+  return (lang) => {
+    const forward = [PT.p11Seat, PT.p2Seat]
+    const path = dir === "n2s" ? forward : [...forward].reverse()
+    const es = lang === "es"
+    const gw = es ? "Puerta" : "Gate"
+    const nNorte = { es: "Palco Norte Occidental", en: "North West Box", gate: "11" }
+    const nSur = { es: "Palco Sur Occidental", en: "South West Box", gate: "2" }
+
+    const start = dir === "n2s" ? nNorte : nSur
+    const end = dir === "n2s" ? nSur : nNorte
+    const passage = dir === "n2s" ? T[lang].passageP11P2 : T[lang].passageP2P11
+
+    const steps: RouteStep[] = [
+      { type: "start", instruction: es ? start.es : start.en, detail: `${gw} ${start.gate}`, icon: "pin" },
+      { type: "internal", instruction: passage, icon: "enter" },
+      { type: "arrive", instruction: es ? end.es : end.en, detail: `${gw} ${end.gate}`, icon: "flag" },
+    ]
+
+    return {
+      steps,
+      totalSteps: steps.length,
+      usesExterior: false,
+      gateTrace: dir === "n2s" ? [11, 2] : [2, 11],
+      specialPath: path,
+      specialMeters: metersOf(path),
+    }
+  }
+}
+
+// Puntos de asiento del bloque Sur Occidental (TRAMO_1), para reconstruir la
+// polilínea cuando la ruta base es interna de anillo (sin specialPath propio).
+const SOUTH_T1_TRACE_PT: Record<number, Pt> = {
+  1: PT.plazoletaP1,
+  2: PT.p2Seat,
+  3: PT.p3,
+}
+function southT1TracePts(trace: number[]): Pt[] {
+  return trace.map((g) => SOUTH_T1_TRACE_PT[g]).filter(Boolean) as Pt[]
+}
+
+// ============================================================
+// Rutas de Palco Norte Occidental (P11) hacia el bloque Sur/Oriental a través
+// del paso interno P11 ↔ P2. En lugar de rodear por el exterior (Puerta 10-11 →
+// La Esperanza → Puerta 1), se cruza el paso interno hasta el Palco Sur
+// Occidental (P2) y desde ahí se reutiliza EXACTAMENTE la ruta ya designada
+// (calculateRoute). Aplica a: P3, P4 (Sur Alta/Baja), P5, P6 y P7. El tramo
+// desde P2 puede seguir usando el corredor exterior habitual (Cacica Quilago),
+// tal como está definido para esas secciones.
+// dir "from": desde P11 hacia el destino. dir "to": desde el destino hacia P11.
+// ============================================================
+function makePalcoNorthViaP2(destId: string, dir: "from" | "to"): SpecialRouteBuilder {
+  return (lang) => {
+    const es = lang === "es"
+    const gw = es ? "Puerta" : "Gate"
+    const p11Step = (type: "start" | "arrive"): RouteStep => ({
+      type,
+      instruction: es ? "Palco Norte Occidental" : "North West Box",
+      detail: `${gw} 11`,
+      icon: type === "start" ? "pin" : "flag",
+    })
+
+    if (dir === "from") {
+      // P11 → (paso interno) → P2 → [ruta designada P2 → destino]
+      const base = calculateRoute("palco-sur-occidental", destId, lang)
+      const passage: RouteStep = { type: "internal", instruction: T[lang].passageP11P2, icon: "enter" }
+      // base.steps[0] es el inicio en P2; se sustituye por P11 + paso interno.
+      const steps = [p11Step("start"), passage, ...base.steps.slice(1)]
+      const specialPath =
+        base.specialPath && base.specialPath.length
+          ? [PT.p11Seat, ...base.specialPath]
+          : [PT.p11Seat, ...southT1TracePts(base.gateTrace)]
+      return {
+        steps,
+        totalSteps: steps.length,
+        usesExterior: base.usesExterior,
+        gateTrace: [11, ...base.gateTrace],
+        specialPath,
+        specialMeters: metersOf(specialPath),
+      }
+    }
+
+    // dir "to": [ruta designada destino → P2] → (paso interno) → P11
+    const base = calculateRoute(destId, "palco-sur-occidental", lang)
+    const passage: RouteStep = { type: "internal", instruction: T[lang].passageP2P11, icon: "enter" }
+    // La última indicación de base es la llegada a P2; se sustituye por el paso
+    // interno + la llegada a P11.
+    const steps = [...base.steps.slice(0, -1), passage, p11Step("arrive")]
+    const specialPath =
+      base.specialPath && base.specialPath.length
+        ? [...base.specialPath, PT.p11Seat]
+        : [...southT1TracePts(base.gateTrace), PT.p11Seat]
+    return {
+      steps,
+      totalSteps: steps.length,
+      usesExterior: base.usesExterior,
+      gateTrace: [...base.gateTrace, 11],
+      specialPath,
+      specialMeters: metersOf(specialPath),
+    }
+  }
+}
+
+// Puntos de asiento del bloque Occidental, para reconstruir la polilínea de
+// unión visual cuando la ruta base no aporta specialPath propio.
+const WEST_TRACE_PT: Record<number, Pt> = {
+  1: PT.plazoletaP1,
+  2: PT.p2Seat,
+  9: PT.p9OccSeat,
+  10: PT.p10Seat,
+  11: PT.p11Seat,
+}
+function westTracePts(trace: number[]): Pt[] {
+  return trace.map((g) => WEST_TRACE_PT[g]).filter(Boolean) as Pt[]
+}
+
+// ============================================================
+// Rutas de Palco Sur Occidental (P2) hacia el bloque Norte Occidental {P10
+// Tribuna Norte Occ., P9 General Norte Occ.} a través del paso interno P2 ↔ P11.
+// Desde P2 NO se rodea por la Plazoleta (P1), La Esperanza ni la Puerta 10-11:
+// se cruza el paso entre palcos hasta el Palco Norte Occidental (P11) y desde
+// ahí se reutiliza EXACTAMENTE la ruta ya designada P11 → destino (P11→P10 sale
+// por la P11 e ingresa por la P10; P11→P9 sube por la Puerta 10-11).
+// dir "from": desde P2 hacia el destino. dir "to": desde el destino hacia P2.
+// ============================================================
+function makePalcoSouthViaP11(destId: string, dir: "from" | "to"): SpecialRouteBuilder {
+  return (lang) => {
+    const es = lang === "es"
+    const gw = es ? "Puerta" : "Gate"
+    const p2Step = (type: "start" | "arrive"): RouteStep => ({
+      type,
+      instruction: es ? "Palco Sur Occidental" : "South West Box",
+      detail: `${gw} 2`,
+      icon: type === "start" ? "pin" : "flag",
+    })
+
+    if (dir === "from") {
+      // P2 → (paso interno) → P11 → [ruta designada P11 → destino]
+      const base = calculateRoute("palco-norte-occidental", destId, lang)
+      const passage: RouteStep = { type: "internal", instruction: T[lang].passageP2P11, icon: "enter" }
+      const steps = [p2Step("start"), passage, ...base.steps.slice(1)]
+      const specialPath =
+        base.specialPath && base.specialPath.length
+          ? [PT.p2Seat, ...base.specialPath]
+          : [PT.p2Seat, ...westTracePts(base.gateTrace)]
+      return {
+        steps,
+        totalSteps: steps.length,
+        usesExterior: base.usesExterior,
+        gateTrace: [2, ...base.gateTrace],
+        specialPath,
+        specialMeters: metersOf(specialPath),
+      }
+    }
+
+    // dir "to": [ruta designada destino → P11] → (paso interno) → P2
+    const base = calculateRoute(destId, "palco-norte-occidental", lang)
+    const passage: RouteStep = { type: "internal", instruction: T[lang].passageP11P2, icon: "enter" }
+    const steps = [...base.steps.slice(0, -1), passage, p2Step("arrive")]
+    const specialPath =
+      base.specialPath && base.specialPath.length
+        ? [...base.specialPath, PT.p2Seat]
+        : [...westTracePts(base.gateTrace), PT.p2Seat]
+    return {
+      steps,
+      totalSteps: steps.length,
+      usesExterior: base.usesExterior,
+      gateTrace: [...base.gateTrace, 2],
+      specialPath,
+      specialMeters: metersOf(specialPath),
+    }
+  }
+}
+
+// ============================================================
 // Acceso OESTE al Norte Oriental {P7, P8, General Norte Oriental}
 // ------------------------------------------------------------
 // Desde el bloque Sur Occidental {Plazoleta(P1), P2, P3} NO se rodea por el
@@ -515,6 +697,56 @@ function makeNorthEastWestRoute(north: number, south: number, dir: "n2s" | "s2n"
       totalSteps: steps.length,
       usesExterior: true,
       gateTrace: dir === "s2n" ? [south, 1, streetGate, north] : [north, streetGate, 1, south],
+      specialPath: path,
+      specialMeters: metersOf(path),
+    }
+  }
+}
+
+// ============================================================
+// Palco Norte Occidental (P11) ↔ General Norte Oriental (P9 Oriental).
+// Desde P11 NO se baja a la Plazoleta ni a La Esperanza: se sale por la Puerta
+// 10-11 a la calle H. Vans Risn, se entra por la Puerta 9W y se sube por
+// General Norte hasta General Norte Oriental. El trazo (specialPath) refleja
+// exactamente ese recorrido para que mapa e indicaciones coincidan.
+// ============================================================
+function makeWestBoxToNorthEastRoute(dir: "n2s" | "s2n"): SpecialRouteBuilder {
+  return (lang) => {
+    const es = lang === "es"
+    const gw = es ? "Puerta" : "Gate"
+    // Forward = desde P11 hacia General Norte Oriental.
+    const forward: Pt[] = [
+      PT.p11Seat, PT.p10Seat, PT.p1011Corner, PT.p1011Exterior,
+      PT.p9wExterior, PT.p9OccJunction, PT.p9OccSeat, PT.p9OriSeat,
+    ]
+    const path = dir === "n2s" ? forward : [...forward].reverse()
+    const p11 = { es: "Palco Norte Occidental", en: "North West Box", gate: "11" }
+    const p9o = { es: "General Norte Oriental", en: "North East General", gate: "9" }
+    const steps: RouteStep[] = []
+
+    if (dir === "n2s") {
+      steps.push({ type: "start", instruction: es ? p11.es : p11.en, detail: `${gw} ${p11.gate}`, icon: "pin" })
+      steps.push({ type: "internal", instruction: es ? "Camina hasta la Puerta 10-11" : "Walk to Gate 10-11", icon: "walk" })
+      steps.push({ type: "external", instruction: es ? "Sal por la Puerta 10-11" : "Exit through Gate 10-11", icon: "exit" })
+      steps.push({ type: "external", instruction: es ? "Camina por H. Vans Risn siguiendo la ruta señalizada" : "Walk along H. Vans Risn following the marked route", icon: "walk" })
+      steps.push({ type: "external", instruction: es ? "Ingresa por la Puerta 9W" : "Enter through Gate 9W", icon: "enter" })
+      steps.push({ type: "internal", instruction: es ? "Camina por General Norte hasta General Norte Oriental" : "Walk through North General to North East General", icon: "walk" })
+      steps.push({ type: "arrive", instruction: es ? p9o.es : p9o.en, detail: `${gw} ${p9o.gate}`, icon: "flag" })
+    } else {
+      steps.push({ type: "start", instruction: es ? p9o.es : p9o.en, detail: `${gw} ${p9o.gate}`, icon: "pin" })
+      steps.push({ type: "internal", instruction: es ? "Camina por General Norte hasta la Puerta 9W" : "Walk through North General to Gate 9W", icon: "walk" })
+      steps.push({ type: "external", instruction: es ? "Sal por la Puerta 9W" : "Exit through Gate 9W", icon: "exit" })
+      steps.push({ type: "external", instruction: es ? "Camina por H. Vans Risn siguiendo la ruta señalizada" : "Walk along H. Vans Risn following the marked route", icon: "walk" })
+      steps.push({ type: "external", instruction: es ? "Ingresa por la Puerta 10-11" : "Enter through Gate 10-11", icon: "enter" })
+      steps.push({ type: "internal", instruction: es ? "Camina hasta la Puerta 11" : "Walk to Gate 11", icon: "walk" })
+      steps.push({ type: "arrive", instruction: es ? p11.es : p11.en, detail: `${gw} ${p11.gate}`, icon: "flag" })
+    }
+
+    return {
+      steps,
+      totalSteps: steps.length,
+      usesExterior: true,
+      gateTrace: dir === "n2s" ? [11, 10, 9] : [9, 10, 11],
       specialPath: path,
       specialMeters: metersOf(path),
     }
@@ -790,7 +1022,7 @@ const SPECIAL_ROUTES: Record<string, SpecialRouteBuilder> = {
   "general-sur-baja|palco-sur-oriental":       makeSurInternalRoute("baja", 6),
   "palco-sur-oriental|general-sur-baja":       makeSurInternalRoute(6, "baja"),
 
-  // ── Corredor Sur: {Plazoleta(P1), P2, P3} ↔ General Sur (P4) por Cacica Quilago ──
+  // ���─ Corredor Sur: {Plazoleta(P1), P2, P3} ↔ General Sur (P4) por Cacica Quilago ──
   "tribuna-sur-occidental|general-sur-alta": makeSouthCorridorRoute(3, "alta", "out"),
   "general-sur-alta|tribuna-sur-occidental": makeSouthCorridorRoute(3, "alta", "in"),
   "tribuna-sur-occidental|general-sur-baja": makeSouthCorridorRoute(3, "baja", "out"),
@@ -960,23 +1192,42 @@ const SPECIAL_ROUTES: Record<string, SpecialRouteBuilder> = {
   //    coincidan siempre. Anulado el paso interno P11 ✖ Plazoleta.
   "tribuna-norte-occidental|plazoleta":              makeWestLoopRoute(10, 1, "n2s"),
   "plazoleta|tribuna-norte-occidental":              makeWestLoopRoute(10, 1, "s2n"),
-  "tribuna-norte-occidental|palco-sur-occidental":   makeWestLoopRoute(10, 2, "n2s"),
-  "palco-sur-occidental|tribuna-norte-occidental":   makeWestLoopRoute(10, 2, "s2n"),
+  // Desde P2 al Norte Occidental se cruza el paso entre palcos a P11 y se sigue
+  // la ruta designada P11→destino (no se rodea por Plazoleta/La Esperanza).
+  "tribuna-norte-occidental|palco-sur-occidental":   makePalcoSouthViaP11("tribuna-norte-occidental", "to"),
+  "palco-sur-occidental|tribuna-norte-occidental":   makePalcoSouthViaP11("tribuna-norte-occidental", "from"),
   "tribuna-norte-occidental|tribuna-sur-occidental": makeWestLoopRoute(10, 3, "n2s"),
   "tribuna-sur-occidental|tribuna-norte-occidental": makeWestLoopRoute(10, 3, "s2n"),
-  "palco-norte-occidental|plazoleta":                makeWestLoopRoute(11, 1, "n2s"),
-  "plazoleta|palco-norte-occidental":                makeWestLoopRoute(11, 1, "s2n"),
-  "palco-norte-occidental|palco-sur-occidental":     makeWestLoopRoute(11, 2, "n2s"),
-  "palco-sur-occidental|palco-norte-occidental":     makeWestLoopRoute(11, 2, "s2n"),
-  "palco-norte-occidental|tribuna-sur-occidental":   makeWestLoopRoute(11, 3, "n2s"),
-  "tribuna-sur-occidental|palco-norte-occidental":   makeWestLoopRoute(11, 3, "s2n"),
+  // Plazoleta (P1) ↔ Palco Norte Occidental (P11): se pasa por el Palco Sur
+  // Occidental (P2) — ruta interna P1↔P2 ya designada — y de ahí el paso interno
+  // P2↔P11. No se rodea por la Puerta 10-11.
+  "palco-norte-occidental|plazoleta":                makePalcoNorthViaP2("plazoleta", "from"),
+  "plazoleta|palco-norte-occidental":                makePalcoNorthViaP2("plazoleta", "to"),
+  // Paso interno directo entre palcos (única comunicación Norte Occ. ↔ Sur Occ.).
+  "palco-norte-occidental|palco-sur-occidental":     makePalcoLinkRoute("n2s"),
+  "palco-sur-occidental|palco-norte-occidental":     makePalcoLinkRoute("s2n"),
+  // Desde P11 hacia el bloque Sur/Oriental {P3, P4, P5, P6, P7}: se cruza el
+  // paso interno a P2 y se sigue la ruta ya designada desde P2. NO se rodea por
+  // la Puerta 10-11. (P9 y Plazoleta sí mantienen el recorrido exterior.)
+  "palco-norte-occidental|tribuna-sur-occidental":   makePalcoNorthViaP2("tribuna-sur-occidental", "from"),
+  "tribuna-sur-occidental|palco-norte-occidental":   makePalcoNorthViaP2("tribuna-sur-occidental", "to"),
+  "palco-norte-occidental|general-sur-alta":         makePalcoNorthViaP2("general-sur-alta", "from"),
+  "general-sur-alta|palco-norte-occidental":         makePalcoNorthViaP2("general-sur-alta", "to"),
+  "palco-norte-occidental|general-sur-baja":         makePalcoNorthViaP2("general-sur-baja", "from"),
+  "general-sur-baja|palco-norte-occidental":         makePalcoNorthViaP2("general-sur-baja", "to"),
+  "palco-norte-occidental|tribuna-sur-oriental":     makePalcoNorthViaP2("tribuna-sur-oriental", "from"),
+  "tribuna-sur-oriental|palco-norte-occidental":     makePalcoNorthViaP2("tribuna-sur-oriental", "to"),
+  "palco-norte-occidental|palco-sur-oriental":       makePalcoNorthViaP2("palco-sur-oriental", "from"),
+  "palco-sur-oriental|palco-norte-occidental":       makePalcoNorthViaP2("palco-sur-oriental", "to"),
+  "palco-norte-occidental|palco-norte-oriental":     makePalcoNorthViaP2("palco-norte-oriental", "from"),
+  "palco-norte-oriental|palco-norte-occidental":     makePalcoNorthViaP2("palco-norte-oriental", "to"),
 
   // ── General Norte Occidental (P9) ↔ Sur Occidental {P1, P2, P3} ──
   //    Enlace vertical interno hasta la Puerta 9W → H. Vans Risn → La Esperanza.
   "general-norte-occidental|plazoleta":              makeWestLoopRoute(9, 1, "n2s"),
   "plazoleta|general-norte-occidental":              makeWestLoopRoute(9, 1, "s2n"),
-  "general-norte-occidental|palco-sur-occidental":   makeWestLoopRoute(9, 2, "n2s"),
-  "palco-sur-occidental|general-norte-occidental":   makeWestLoopRoute(9, 2, "s2n"),
+  "general-norte-occidental|palco-sur-occidental":   makePalcoSouthViaP11("general-norte-occidental", "to"),
+  "palco-sur-occidental|general-norte-occidental":   makePalcoSouthViaP11("general-norte-occidental", "from"),
   "general-norte-occidental|tribuna-sur-occidental": makeWestLoopRoute(9, 3, "n2s"),
   "tribuna-sur-occidental|general-norte-occidental": makeWestLoopRoute(9, 3, "s2n"),
 
@@ -987,8 +1238,15 @@ const SPECIAL_ROUTES: Record<string, SpecialRouteBuilder> = {
   //    (Cacica Quilago) que resuelve el motor genérico.
   "plazoleta|general-norte-oriental":                makeNorthEastWestRoute(9, 1, "s2n"),
   "general-norte-oriental|plazoleta":                makeNorthEastWestRoute(9, 1, "n2s"),
-  "palco-sur-occidental|general-norte-oriental":     makeNorthEastWestRoute(9, 2, "s2n"),
-  "general-norte-oriental|palco-sur-occidental":     makeNorthEastWestRoute(9, 2, "n2s"),
+  // Desde P11 a General Norte Oriental: sal por la Puerta 10-11, entra por la
+  // Puerta 9W y sube por General Norte. Trazo dedicado (sin Plazoleta).
+  "palco-norte-occidental|general-norte-oriental":   makeWestBoxToNorthEastRoute("n2s"),
+  "general-norte-oriental|palco-norte-occidental":   makeWestBoxToNorthEastRoute("s2n"),
+  // Desde P2 a General Norte Oriental se cruza el paso entre palcos a P11 y se
+  // sigue la ruta designada P11→P9 (sal por Puerta 11, sal por Puerta 10-11 y
+  // entra por la Puerta 9W). No se rodea por la Plazoleta (P1) ni La Esperanza.
+  "palco-sur-occidental|general-norte-oriental":     makePalcoSouthViaP11("general-norte-oriental", "from"),
+  "general-norte-oriental|palco-sur-occidental":     makePalcoSouthViaP11("general-norte-oriental", "to"),
   "tribuna-sur-occidental|general-norte-oriental":   makeNorthEastWestRoute(9, 3, "s2n"),
   "general-norte-oriental|tribuna-sur-occidental":   makeNorthEastWestRoute(9, 3, "n2s"),
 }
@@ -1067,8 +1325,8 @@ function resolveRoute(from: number, to: number, lang: "es" | "en" = "es"): Resol
     const dir = fi < ti ? 1 : -1
     for (let i = fi + dir; i !== ti + dir; i += dir) pushTrace(tramo[i])
   }
-  const wi = (f: number, t2: number, tramo: number[]) => {
-    walkInternal(steps, f, t2, tramo, lang)
+  const wi = (f: number, t2: number, tramo: number[], opts?: { startTransit?: boolean; endTransit?: boolean }) => {
+    walkInternal(steps, f, t2, tramo, lang, opts)
     traceTramo(f, t2, tramo)
   }
   const ext = (
@@ -1088,12 +1346,12 @@ function resolveRoute(from: number, to: number, lang: "es" | "en" = "es"): Resol
   // bloque Norte Occidental YA NO usa la Puerta 7-8: siempre se camina
   // internamente hasta P9 y se cruza por la Puerta 9W ↔ Puerta 10-11 (H. Vans
   // Risn). Tribuna Norte Occidental (P10) siempre entra/sale por la Puerta 10-11.
-  const westToTramo2 = (target: number) => {
+  const westToTramo2 = (target: number, endTransit = false) => {
     steps.push(...ext(10, ["H. Vans Risn"], 9, { exitLabel: "10-11", entryLabel: "9W" }))
-    wi(9, target, TRAMO_2)
+    wi(9, target, TRAMO_2, { endTransit })
   }
-  const tramo2ToWest = (source: number) => {
-    wi(source, 9, TRAMO_2)
+  const tramo2ToWest = (source: number, startTransit = false) => {
+    wi(source, 9, TRAMO_2, { startTransit })
     steps.push(...ext(9, ["H. Vans Risn"], 10, { exitLabel: "9W", entryLabel: "10-11" }))
   }
 
@@ -1105,6 +1363,26 @@ function resolveRoute(from: number, to: number, lang: "es" | "en" = "es"): Resol
   }
   const westToPlazoleta = () => {
     steps.push(...ext(10, ["H. Vans Risn", "La Esperanza"], 1, { exitLabel: "10-11" }))
+  }
+
+  // ── Aproximación al bloque Norte Occidental por la Puerta 10-11 ──────────
+  // P10 (Tribuna Norte Occ.) y P11 (Palco Norte Occ.) comparten el ACCESO
+  // exterior "Puerta 10-11". Por eso, al salir/entrar del bloque hacia el
+  // exterior NO se pasa por dentro de la otra sección: desde P11 solo se camina
+  // hasta la Puerta 10-11 (no se "entra a la Puerta 10") y desde P10 ya se está
+  // en ella. Estas funciones sustituyen al recorrido interno P11↔P10 en las
+  // transiciones con el exterior, evitando el paso incorrecto "Entra por Puerta 10".
+  const westApproachOut = (g: number) => {
+    if (g === 11) {
+      steps.push({ type: "internal", instruction: lang === "es" ? "Camina hasta la Puerta 10-11" : "Walk to Gate 10-11", icon: "walk" })
+      pushTrace(10)
+    }
+  }
+  const westApproachIn = (g: number) => {
+    if (g === 11) {
+      steps.push({ type: "internal", instruction: lang === "es" ? "Camina hasta la Puerta 11" : "Walk to Gate 11", icon: "walk" })
+      pushTrace(11)
+    }
   }
 
   // ── Paso interno habilitado P4 (General Sur Baja) ↔ P5 (Tribuna Sur Oriental) ──
@@ -1145,11 +1423,11 @@ function resolveRoute(from: number, to: number, lang: "es" | "en" = "es"): Resol
   if (inTramo1(from) && inTramo3(to)) {
     wi(from, PLAZOLETA_GATE, TRAMO_1)   // pasillo interior hasta la Plazoleta
     plazoletaToWest()                   // exterior La Esperanza + H. Vans Risn
-    wi(10, to, TRAMO_3)                 // pasillo interior Norte Occidental
+    westApproachIn(to)                  // camina hasta la sección (P11) sin entrar a P10
     return { steps, trace }
   }
   if (inTramo3(from) && inTramo1(to)) {
-    wi(from, 10, TRAMO_3)
+    westApproachOut(from)               // camina hasta la Puerta 10-11 (sin entrar a P10)
     westToPlazoleta()
     wi(PLAZOLETA_GATE, to, TRAMO_1)
     return { steps, trace }
@@ -1158,11 +1436,11 @@ function resolveRoute(from: number, to: number, lang: "es" | "en" = "es"): Resol
   // ── TRAMO_2 ↔ TRAMO_3: P9 ↔ P10 por Hermensz ───────────
   if (inTramo2(from) && inTramo3(to)) {
     tramo2ToWest(from)
-    wi(10, to, TRAMO_3)
+    westApproachIn(to)                  // camina hasta la sección (P11) sin entrar a P10
     return { steps, trace }
   }
   if (inTramo3(from) && inTramo2(to)) {
-    wi(from, 10, TRAMO_3)
+    westApproachOut(from)               // camina hasta la Puerta 10-11 (sin entrar a P10)
     westToTramo2(to)
     return { steps, trace }
   }
@@ -1210,26 +1488,27 @@ function resolveRoute(from: number, to: number, lang: "es" | "en" = "es"): Resol
   }
   if (from === 4 && inTramo2(to)) {
     // General Sur Baja → lado oriental por el paso interno habilitado P4 ↔ P5.
+    // P5 es solo tránsito: se continúa por el lado oriental sin entrar a ella.
     p4ToP5()
-    wi(5, to, TRAMO_2)
+    wi(5, to, TRAMO_2, { startTransit: true })
     return { steps, trace }
   }
   if (inTramo2(from) && to === 4) {
     // Lado oriental → General Sur Baja por el paso interno habilitado P5 ↔ P4.
-    wi(from, 5, TRAMO_2)
+    wi(from, 5, TRAMO_2, { endTransit: true })
     p5ToP4()
     return { steps, trace }
   }
   if (inTramo3(from) && to === 4) {
-    wi(from, 10, TRAMO_3)
-    westToTramo2(5)
+    westApproachOut(from)               // camina hasta la Puerta 10-11 (sin entrar a P10)
+    westToTramo2(5, true)
     p5ToP4()
     return { steps, trace }
   }
   if (from === 4 && inTramo3(to)) {
     p4ToP5()
-    tramo2ToWest(5)
-    wi(10, to, TRAMO_3)
+    tramo2ToWest(5, true)
+    westApproachIn(to)                  // camina hasta la sección (P11) sin entrar a P10
     return { steps, trace }
   }
 
