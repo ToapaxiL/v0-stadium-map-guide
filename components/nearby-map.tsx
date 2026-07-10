@@ -91,7 +91,7 @@ export function NearbyMap({ isDarkMode }: NearbyMapProps) {
   activeCategoryRef.current = activeCategory
   // Id del lugar cuyo botón "Cómo llegar" está en hover, para rellenarlo con el
   // color del estadio y poner texto/icono en blanco.
-  const [hoveredPlace, setHoveredPlace] = useState<string | null>(null)
+  const [hoveredPlace, setHoveredPlace] = useState<number | null>(null)
 
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
 
