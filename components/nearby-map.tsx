@@ -89,6 +89,9 @@ export function NearbyMap({ isDarkMode }: NearbyMapProps) {
   const [activeCategory, setActiveCategory] = useState<string>(PLACE_CATEGORIES[0]?.id ?? "pharmacies")
   const activeCategoryRef = useRef(activeCategory)
   activeCategoryRef.current = activeCategory
+  // Id del lugar cuyo botón "Cómo llegar" está en hover, para rellenarlo con el
+  // color del estadio y poner texto/icono en blanco.
+  const [hoveredPlace, setHoveredPlace] = useState<string | null>(null)
 
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
 
@@ -359,10 +362,18 @@ export function NearbyMap({ isDarkMode }: NearbyMapProps) {
                       variant="outline"
                       size="sm"
                       className="shrink-0 transition-colors"
-                      style={{
-                        borderColor: STADIUM_COLOR,
-                        color: isDarkMode ? mix(STADIUM_COLOR, "#ffffff", 0.55) : STADIUM_COLOR,
-                      }}
+                      style={
+                        hoveredPlace === place.id
+                          ? { backgroundColor: STADIUM_COLOR, borderColor: STADIUM_COLOR, color: "#ffffff" }
+                          : {
+                              borderColor: STADIUM_COLOR,
+                              color: isDarkMode ? mix(STADIUM_COLOR, "#ffffff", 0.55) : STADIUM_COLOR,
+                            }
+                      }
+                      onMouseEnter={() => setHoveredPlace(place.id)}
+                      onMouseLeave={() => setHoveredPlace(null)}
+                      onFocus={() => setHoveredPlace(place.id)}
+                      onBlur={() => setHoveredPlace(null)}
                       onClick={() => handleDirections(place)}
                     >
                       <Navigation className="w-4 h-4 mr-1" />
