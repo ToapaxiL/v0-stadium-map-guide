@@ -1082,8 +1082,11 @@ const SPECIAL_ROUTES: Record<string, SpecialRouteBuilder> = {
   "palco-sur-occidental|tribuna-norte-occidental":   makeWestLoopRoute(10, 2, "s2n"),
   "tribuna-norte-occidental|tribuna-sur-occidental": makeWestLoopRoute(10, 3, "n2s"),
   "tribuna-sur-occidental|tribuna-norte-occidental": makeWestLoopRoute(10, 3, "s2n"),
-  "palco-norte-occidental|plazoleta":                makeWestLoopRoute(11, 1, "n2s"),
-  "plazoleta|palco-norte-occidental":                makeWestLoopRoute(11, 1, "s2n"),
+  // Plazoleta (P1) ↔ Palco Norte Occidental (P11): se pasa por el Palco Sur
+  // Occidental (P2) — ruta interna P1↔P2 ya designada — y de ahí el paso interno
+  // P2↔P11. No se rodea por la Puerta 10-11.
+  "palco-norte-occidental|plazoleta":                makePalcoNorthViaP2("plazoleta", "from"),
+  "plazoleta|palco-norte-occidental":                makePalcoNorthViaP2("plazoleta", "to"),
   // Paso interno directo entre palcos (única comunicación Norte Occ. ↔ Sur Occ.).
   "palco-norte-occidental|palco-sur-occidental":     makePalcoLinkRoute("n2s"),
   "palco-sur-occidental|palco-norte-occidental":     makePalcoLinkRoute("s2n"),
