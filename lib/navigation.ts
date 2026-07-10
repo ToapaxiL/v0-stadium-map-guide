@@ -284,11 +284,11 @@ const PT = {
   p4AltaSeat:    { x: 670.291, y: 289.996 }, // General Sur Alta (P4)
   p4BajaSeat:    { x: 670.292, y: 229.997 }, // General Sur Baja (P4) — se llega SOLO desde Alta
 
-  // ── Lado Sur Oriental (continuación interna desde General Sur Baja) ──
+  // ── Lado Sur Oriental (continuación interna desde General Sur Baja) ─��
   p5Seat:        { x: 599.981, y: 170.31  }, // Tribuna Sur Oriental (P5)
   p6Seat:        { x: 537.972, y: 153.438 }, // Palco Sur Oriental (P6)
 
-  // ── Lado Norte Oriental (acceso por el OESTE, calle H. Vans Risn) ──
+  // ── Lado Norte Oriental (acceso por el OESTE, calle H. Vans Risn) ���─
   // A P7/P8 se entra por la Puerta 7-8 (arriba del 9W en la misma calle);
   // a General Norte Oriental (P9 Ori) se entra por 9W y se sube
   // pasando por General Norte Occidental.
@@ -1188,8 +1188,11 @@ const SPECIAL_ROUTES: Record<string, SpecialRouteBuilder> = {
   //    (Cacica Quilago) que resuelve el motor genérico.
   "plazoleta|general-norte-oriental":                makeNorthEastWestRoute(9, 1, "s2n"),
   "general-norte-oriental|plazoleta":                makeNorthEastWestRoute(9, 1, "n2s"),
-  "palco-sur-occidental|general-norte-oriental":     makeNorthEastWestRoute(9, 2, "s2n"),
-  "general-norte-oriental|palco-sur-occidental":     makeNorthEastWestRoute(9, 2, "n2s"),
+  // Desde P2 a General Norte Oriental se cruza el paso entre palcos a P11 y se
+  // sigue la ruta designada P11→P9 (sal por Puerta 11, sal por Puerta 10-11 y
+  // entra por la Puerta 9W). No se rodea por la Plazoleta (P1) ni La Esperanza.
+  "palco-sur-occidental|general-norte-oriental":     makePalcoSouthViaP11("general-norte-oriental", "from"),
+  "general-norte-oriental|palco-sur-occidental":     makePalcoSouthViaP11("general-norte-oriental", "to"),
   "tribuna-sur-occidental|general-norte-oriental":   makeNorthEastWestRoute(9, 3, "s2n"),
   "general-norte-oriental|tribuna-sur-occidental":   makeNorthEastWestRoute(9, 3, "n2s"),
 }
