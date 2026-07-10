@@ -138,6 +138,8 @@ const T = {
     viaPlazoleta:   "Pasa por la Plazoleta",
     passageP4P5:    "Desde General Sur Baja (Puerta 4) accede a Tribuna Sur Oriental (Puerta 5) a través del paso habilitado",
     passageP8P9:    "Desde Tribuna Norte Oriental (Puerta 8) accede a General Norte Oriental (Puerta 9) a través del paso habilitado",
+    passageP11P2:   "Cruza del Palco Norte Occidental (Puerta 11) al Palco Sur Occidental (Puerta 2) por el paso interno habilitado entre palcos",
+    passageP2P11:   "Cruza del Palco Sur Occidental (Puerta 2) al Palco Norte Occidental (Puerta 11) por el paso interno habilitado entre palcos",
   },
   en: {
     walkCorridor:   "Walk through the indoor corridor",
@@ -151,6 +153,8 @@ const T = {
     viaPlazoleta:   "Pass through the Plaza",
     passageP4P5:    "From General Sur Baja (Gate 4) you can reach Tribuna Sur Oriental (Gate 5) through the passage enabled between both sections",
     passageP8P9:    "From Tribuna Norte Oriental (Gate 8) you can reach General Norte Oriental (Gate 9) through the enabled passage",
+    passageP11P2:   "Cross from North West Box (Gate 11) to South West Box (Gate 2) through the internal passage enabled between the boxes",
+    passageP2P11:   "Cross from South West Box (Gate 2) to North West Box (Gate 11) through the internal passage enabled between the boxes",
   },
 }
 
@@ -434,6 +438,45 @@ function makeWestLoopRoute(north: number, south: number, dir: "n2s" | "s2n"): Sp
       totalSteps: steps.length,
       usesExterior: true,
       gateTrace: dir === "n2s" ? [north, northNode, 1, south] : [south, 1, northNode, north],
+      specialPath: path,
+      specialMeters: metersOf(path),
+    }
+  }
+}
+
+// ============================================================
+// Paso INTERNO entre palcos: Palco Norte Occidental (P11) ↔ Palco Sur
+// Occidental (P2). Es el ÚNICO punto de comunicación directa entre el Norte
+// Occidental y el Sur Occidental, y solo aplica de palco a palco. El resto de
+// combinaciones (P11↔Plazoleta, P11↔Tribuna Sur Occ., P10/P9↔Sur Occ.) siguen
+// usando el recorrido exterior por la Puerta 10-11 → La Esperanza → Puerta 1.
+// La polilínea es una recta horizontal P11 → P2 (misma altura), que dibuja la
+// unión visual entre ambos palcos.
+// ============================================================
+function makePalcoLinkRoute(dir: "n2s" | "s2n"): SpecialRouteBuilder {
+  return (lang) => {
+    const forward = [PT.p11Seat, PT.p2Seat]
+    const path = dir === "n2s" ? forward : [...forward].reverse()
+    const es = lang === "es"
+    const gw = es ? "Puerta" : "Gate"
+    const nNorte = { es: "Palco Norte Occidental", en: "North West Box", gate: "11" }
+    const nSur = { es: "Palco Sur Occidental", en: "South West Box", gate: "2" }
+
+    const start = dir === "n2s" ? nNorte : nSur
+    const end = dir === "n2s" ? nSur : nNorte
+    const passage = dir === "n2s" ? T[lang].passageP11P2 : T[lang].passageP2P11
+
+    const steps: RouteStep[] = [
+      { type: "start", instruction: es ? start.es : start.en, detail: `${gw} ${start.gate}`, icon: "pin" },
+      { type: "internal", instruction: passage, icon: "enter" },
+      { type: "arrive", instruction: es ? end.es : end.en, detail: `${gw} ${end.gate}`, icon: "flag" },
+    ]
+
+    return {
+      steps,
+      totalSteps: steps.length,
+      usesExterior: false,
+      gateTrace: dir === "n2s" ? [11, 2] : [2, 11],
       specialPath: path,
       specialMeters: metersOf(path),
     }
@@ -966,8 +1009,9 @@ const SPECIAL_ROUTES: Record<string, SpecialRouteBuilder> = {
   "tribuna-sur-occidental|tribuna-norte-occidental": makeWestLoopRoute(10, 3, "s2n"),
   "palco-norte-occidental|plazoleta":                makeWestLoopRoute(11, 1, "n2s"),
   "plazoleta|palco-norte-occidental":                makeWestLoopRoute(11, 1, "s2n"),
-  "palco-norte-occidental|palco-sur-occidental":     makeWestLoopRoute(11, 2, "n2s"),
-  "palco-sur-occidental|palco-norte-occidental":     makeWestLoopRoute(11, 2, "s2n"),
+  // Paso interno directo entre palcos (única comunicación Norte Occ. ↔ Sur Occ.).
+  "palco-norte-occidental|palco-sur-occidental":     makePalcoLinkRoute("n2s"),
+  "palco-sur-occidental|palco-norte-occidental":     makePalcoLinkRoute("s2n"),
   "palco-norte-occidental|tribuna-sur-occidental":   makeWestLoopRoute(11, 3, "n2s"),
   "tribuna-sur-occidental|palco-norte-occidental":   makeWestLoopRoute(11, 3, "s2n"),
 
