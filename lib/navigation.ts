@@ -131,6 +131,7 @@ const T = {
     passesBy:       (sections: string) => `Pasas por ${sections}`,
     towards:        (section: string) => `Avanza hacia ${section}`,
     exitGate:       (g: number | string) => `Sal por Puerta ${g} al exterior`,
+    hopExit:        (g: number | string) => `Sal por Puerta ${g}`,
     walkStreet:     (s: string) => `Camina por ${s}`,
     continueStreet: (s: string) => `Continúa por ${s}`,
     enterGate:      (g: number | string) => `Entra por Puerta ${g}`,
@@ -149,6 +150,7 @@ const T = {
     passesBy:       (sections: string) => `You pass by ${sections}`,
     towards:        (section: string) => `Head toward ${section}`,
     exitGate:       (g: number | string) => `Exit through Gate ${g} to the exterior`,
+    hopExit:        (g: number | string) => `Exit through Gate ${g}`,
     walkStreet:     (s: string) => `Walk along ${s}`,
     continueStreet: (s: string) => `Continue along ${s}`,
     enterGate:      (g: number | string) => `Enter through Gate ${g}`,
@@ -175,8 +177,9 @@ const PLAZOLETA_GATE = 1
 //   · Paso interno entre palcos → sin salir del estadio (P6↔P7, P11↔P2 aparte).
 //   · Paso habilitado → conexión interior concreta (P8↔P9).
 //   · Paso por la Plazoleta (P1) → zona abierta que enlaza con el Palco Sur Occ.
-//   · Cualquier otra pareja contigua → hay que SALIR por una puerta e INGRESAR
-//     por la siguiente (transición exterior).
+//   · Cualquier otra pareja contigua → se SALE por una puerta y se INGRESA por
+//     la siguiente. Estos saltos NO se consideran "exterior" (no rodean el
+//     estadio por la calle): solo se camina de una puerta a la contigua.
 // walkInternal narra el recorrido dentro de un mismo tramo puerta por puerta,
 // aclarando en cada salto qué ocurre (salir/entrar o cruzar un paso interno).
 function walkInternal(
@@ -197,9 +200,20 @@ function walkInternal(
   const ordered: number[] = []
   for (let i = fi; i !== ti + dir; i += dir) ordered.push(tramo[i])
 
-  for (let k = 0; k < ordered.length - 1; k++) {
-    const a = ordered[k]
-    const b = ordered[k + 1]
+  // Bypass del sector de palcos orientales (P6/P7): el paso entre palcos SOLO se
+  // usa cuando el origen o el destino es un palco (P6 o P7). Si únicamente se
+  // atraviesa el lado oriental (p. ej. de P5 hacia P8/P9), NO se entra a ese
+  // sector: se camina por el exterior directamente de la Puerta 5 a la Puerta 8,
+  // omitiendo las puertas 6 y 7 de las indicaciones.
+  const endpointIsPalco = from === 6 || from === 7 || to === 6 || to === 7
+  const seq =
+    !endpointIsPalco && ordered.includes(6) && ordered.includes(7)
+      ? ordered.filter((g) => g !== 6 && g !== 7)
+      : ordered
+
+  for (let k = 0; k < seq.length - 1; k++) {
+    const a = seq[k]
+    const b = seq[k + 1]
 
     // Palco Sur Oriental (P6) ↔ Palco Norte Oriental (P7): paso interno entre palcos.
     if ((a === 6 && b === 7) || (a === 7 && b === 6)) {
@@ -216,9 +230,10 @@ function walkInternal(
       steps.push({ type: "internal", instruction: t.viaPlazoleta, icon: "walk" })
       continue
     }
-    // Resto de puertas contiguas: sin conexión interna → salir de una e ingresar a la otra.
-    steps.push({ type: "external", instruction: t.exitGate(a), icon: "exit" })
-    steps.push({ type: "external", instruction: t.enterGate(b), icon: "enter" })
+    // Resto de puertas contiguas: salir por una e ingresar por la siguiente.
+    // Se marca como paso NO exterior (no rodea el estadio por la calle).
+    steps.push({ type: "internal", instruction: t.hopExit(a), icon: "exit" })
+    steps.push({ type: "internal", instruction: t.enterGate(b), icon: "enter" })
   }
 }
 
