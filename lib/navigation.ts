@@ -284,7 +284,7 @@ const PT = {
   p4AltaSeat:    { x: 670.291, y: 289.996 }, // General Sur Alta (P4)
   p4BajaSeat:    { x: 670.292, y: 229.997 }, // General Sur Baja (P4) — se llega SOLO desde Alta
 
-  // ── Lado Sur Oriental (continuación interna desde General Sur Baja) ─��
+  // ── Lado Sur Oriental (continuación interna desde General Sur Baja) ─���
   p5Seat:        { x: 599.981, y: 170.31  }, // Tribuna Sur Oriental (P5)
   p6Seat:        { x: 537.972, y: 153.438 }, // Palco Sur Oriental (P6)
 
@@ -1311,6 +1311,26 @@ function resolveRoute(from: number, to: number, lang: "es" | "en" = "es"): Resol
     steps.push(...ext(10, ["H. Vans Risn", "La Esperanza"], 1, { exitLabel: "10-11" }))
   }
 
+  // ── Aproximación al bloque Norte Occidental por la Puerta 10-11 ──────────
+  // P10 (Tribuna Norte Occ.) y P11 (Palco Norte Occ.) comparten el ACCESO
+  // exterior "Puerta 10-11". Por eso, al salir/entrar del bloque hacia el
+  // exterior NO se pasa por dentro de la otra sección: desde P11 solo se camina
+  // hasta la Puerta 10-11 (no se "entra a la Puerta 10") y desde P10 ya se está
+  // en ella. Estas funciones sustituyen al recorrido interno P11↔P10 en las
+  // transiciones con el exterior, evitando el paso incorrecto "Entra por Puerta 10".
+  const westApproachOut = (g: number) => {
+    if (g === 11) {
+      steps.push({ type: "internal", instruction: lang === "es" ? "Camina hasta la Puerta 10-11" : "Walk to Gate 10-11", icon: "walk" })
+      pushTrace(10)
+    }
+  }
+  const westApproachIn = (g: number) => {
+    if (g === 11) {
+      steps.push({ type: "internal", instruction: lang === "es" ? "Camina hasta la Puerta 11" : "Walk to Gate 11", icon: "walk" })
+      pushTrace(11)
+    }
+  }
+
   // ── Paso interno habilitado P4 (General Sur Baja) ↔ P5 (Tribuna Sur Oriental) ──
   // Ya NO se sale al exterior entre estas dos secciones: existe un paso interno
   // habilitado. Cualquier ruta que transite entre General Sur y el lado oriental
@@ -1349,11 +1369,11 @@ function resolveRoute(from: number, to: number, lang: "es" | "en" = "es"): Resol
   if (inTramo1(from) && inTramo3(to)) {
     wi(from, PLAZOLETA_GATE, TRAMO_1)   // pasillo interior hasta la Plazoleta
     plazoletaToWest()                   // exterior La Esperanza + H. Vans Risn
-    wi(10, to, TRAMO_3)                 // pasillo interior Norte Occidental
+    westApproachIn(to)                  // camina hasta la sección (P11) sin entrar a P10
     return { steps, trace }
   }
   if (inTramo3(from) && inTramo1(to)) {
-    wi(from, 10, TRAMO_3)
+    westApproachOut(from)               // camina hasta la Puerta 10-11 (sin entrar a P10)
     westToPlazoleta()
     wi(PLAZOLETA_GATE, to, TRAMO_1)
     return { steps, trace }
@@ -1362,11 +1382,11 @@ function resolveRoute(from: number, to: number, lang: "es" | "en" = "es"): Resol
   // ── TRAMO_2 ↔ TRAMO_3: P9 ↔ P10 por Hermensz ───────────
   if (inTramo2(from) && inTramo3(to)) {
     tramo2ToWest(from)
-    wi(10, to, TRAMO_3)
+    westApproachIn(to)                  // camina hasta la sección (P11) sin entrar a P10
     return { steps, trace }
   }
   if (inTramo3(from) && inTramo2(to)) {
-    wi(from, 10, TRAMO_3)
+    westApproachOut(from)               // camina hasta la Puerta 10-11 (sin entrar a P10)
     westToTramo2(to)
     return { steps, trace }
   }
@@ -1426,7 +1446,7 @@ function resolveRoute(from: number, to: number, lang: "es" | "en" = "es"): Resol
     return { steps, trace }
   }
   if (inTramo3(from) && to === 4) {
-    wi(from, 10, TRAMO_3)
+    westApproachOut(from)               // camina hasta la Puerta 10-11 (sin entrar a P10)
     westToTramo2(5, true)
     p5ToP4()
     return { steps, trace }
@@ -1434,7 +1454,7 @@ function resolveRoute(from: number, to: number, lang: "es" | "en" = "es"): Resol
   if (from === 4 && inTramo3(to)) {
     p4ToP5()
     tramo2ToWest(5, true)
-    wi(10, to, TRAMO_3)
+    westApproachIn(to)                  // camina hasta la sección (P11) sin entrar a P10
     return { steps, trace }
   }
 
