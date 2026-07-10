@@ -132,6 +132,7 @@ const T = {
     towards:        (section: string) => `Avanza hacia ${section}`,
     exitGate:       (g: number | string) => `Sal por Puerta ${g} al exterior`,
     hopExit:        (g: number | string) => `Sal por Puerta ${g}`,
+    continueOriental: (g: number | string) => `Continúa por la parte oriental hasta la Puerta ${g}`,
     walkStreet:     (s: string) => `Camina por ${s}`,
     continueStreet: (s: string) => `Continúa por ${s}`,
     enterGate:      (g: number | string) => `Entra por Puerta ${g}`,
@@ -151,6 +152,7 @@ const T = {
     towards:        (section: string) => `Head toward ${section}`,
     exitGate:       (g: number | string) => `Exit through Gate ${g} to the exterior`,
     hopExit:        (g: number | string) => `Exit through Gate ${g}`,
+    continueOriental: (g: number | string) => `Continue along the eastern side to Gate ${g}`,
     walkStreet:     (s: string) => `Walk along ${s}`,
     continueStreet: (s: string) => `Continue along ${s}`,
     enterGate:      (g: number | string) => `Enter through Gate ${g}`,
@@ -182,12 +184,19 @@ const PLAZOLETA_GATE = 1
 //     estadio por la calle): solo se camina de una puerta a la contigua.
 // walkInternal narra el recorrido dentro de un mismo tramo puerta por puerta,
 // aclarando en cada salto qué ocurre (salir/entrar o cruzar un paso interno).
+// opts.startTransit / opts.endTransit marcan que la puerta inicial o final del
+// recorrido es solo un punto de TRÁNSITO al que se llega (o del que se sale) por
+// un paso habilitado, sin entrar realmente a esa sección. En ese caso no se dice
+// "Sal/Entra por esa puerta": el movimiento se narra como "Continúa por la parte
+// oriental hasta la Puerta X". Se usa con el paso habilitado P4 (General Sur) ↔
+// P5 (Tribuna Sur Oriental), donde nunca se pisa la Puerta 5.
 function walkInternal(
   steps: RouteStep[],
   from: number,
   to: number,
   tramo: number[],
-  lang: "es" | "en" = "es"
+  lang: "es" | "en" = "es",
+  opts?: { startTransit?: boolean; endTransit?: boolean }
 ) {
   if (from === to) return
   const fi = tramo.indexOf(from)
@@ -228,6 +237,21 @@ function walkInternal(
     // Paso por la Plazoleta (P1): zona abierta que conecta con el Palco Sur Occidental.
     if (a === PLAZOLETA_GATE || b === PLAZOLETA_GATE) {
       steps.push({ type: "internal", instruction: t.viaPlazoleta, icon: "walk" })
+      continue
+    }
+    // Salto plano con puerta de TRÁNSITO: no se entra ni se sale por esa puerta,
+    // solo se continúa por el lado oriental.
+    const isFirst = k === 0
+    const isLast = k === seq.length - 2
+    if (opts?.startTransit && isFirst) {
+      // 'a' es la puerta de tránsito (llegamos por el paso habilitado): continúa hacia 'b'.
+      steps.push({ type: "internal", instruction: t.continueOriental(b), icon: "walk" })
+      continue
+    }
+    if (opts?.endTransit && isLast) {
+      // 'b' es la puerta de tránsito (saldremos por el paso habilitado): solo se
+      // deja el paso previo; el walk hacia el paso habilitado lo añade el llamador.
+      steps.push({ type: "internal", instruction: t.hopExit(a), icon: "exit" })
       continue
     }
     // Resto de puertas contiguas: salir por una e ingresar por la siguiente.
@@ -1244,8 +1268,8 @@ function resolveRoute(from: number, to: number, lang: "es" | "en" = "es"): Resol
     const dir = fi < ti ? 1 : -1
     for (let i = fi + dir; i !== ti + dir; i += dir) pushTrace(tramo[i])
   }
-  const wi = (f: number, t2: number, tramo: number[]) => {
-    walkInternal(steps, f, t2, tramo, lang)
+  const wi = (f: number, t2: number, tramo: number[], opts?: { startTransit?: boolean; endTransit?: boolean }) => {
+    walkInternal(steps, f, t2, tramo, lang, opts)
     traceTramo(f, t2, tramo)
   }
   const ext = (
@@ -1265,12 +1289,12 @@ function resolveRoute(from: number, to: number, lang: "es" | "en" = "es"): Resol
   // bloque Norte Occidental YA NO usa la Puerta 7-8: siempre se camina
   // internamente hasta P9 y se cruza por la Puerta 9W ↔ Puerta 10-11 (H. Vans
   // Risn). Tribuna Norte Occidental (P10) siempre entra/sale por la Puerta 10-11.
-  const westToTramo2 = (target: number) => {
+  const westToTramo2 = (target: number, endTransit = false) => {
     steps.push(...ext(10, ["H. Vans Risn"], 9, { exitLabel: "10-11", entryLabel: "9W" }))
-    wi(9, target, TRAMO_2)
+    wi(9, target, TRAMO_2, { endTransit })
   }
-  const tramo2ToWest = (source: number) => {
-    wi(source, 9, TRAMO_2)
+  const tramo2ToWest = (source: number, startTransit = false) => {
+    wi(source, 9, TRAMO_2, { startTransit })
     steps.push(...ext(9, ["H. Vans Risn"], 10, { exitLabel: "9W", entryLabel: "10-11" }))
   }
 
@@ -1387,25 +1411,26 @@ function resolveRoute(from: number, to: number, lang: "es" | "en" = "es"): Resol
   }
   if (from === 4 && inTramo2(to)) {
     // General Sur Baja → lado oriental por el paso interno habilitado P4 ↔ P5.
+    // P5 es solo tránsito: se continúa por el lado oriental sin entrar a ella.
     p4ToP5()
-    wi(5, to, TRAMO_2)
+    wi(5, to, TRAMO_2, { startTransit: true })
     return { steps, trace }
   }
   if (inTramo2(from) && to === 4) {
     // Lado oriental → General Sur Baja por el paso interno habilitado P5 ↔ P4.
-    wi(from, 5, TRAMO_2)
+    wi(from, 5, TRAMO_2, { endTransit: true })
     p5ToP4()
     return { steps, trace }
   }
   if (inTramo3(from) && to === 4) {
     wi(from, 10, TRAMO_3)
-    westToTramo2(5)
+    westToTramo2(5, true)
     p5ToP4()
     return { steps, trace }
   }
   if (from === 4 && inTramo3(to)) {
     p4ToP5()
-    tramo2ToWest(5)
+    tramo2ToWest(5, true)
     wi(10, to, TRAMO_3)
     return { steps, trace }
   }
