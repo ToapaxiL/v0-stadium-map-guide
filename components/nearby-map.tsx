@@ -297,82 +297,89 @@ export function NearbyMap({ isDarkMode }: NearbyMapProps) {
         </div>
       </div>
 
-      {/* 2) Mapa de Google — responsive, ancho completo */}
-      <div className="rounded-xl overflow-hidden border border-border bg-card">
-        <div className="relative w-full aspect-[16/11] sm:aspect-[16/9]">
-          <div ref={mapRef} className="absolute inset-0 h-full w-full" />
+      {/* 2) Mapa + lista — en escritorio la lista va a la DERECHA del mapa; en
+             móvil/tablet se apilan (mapa arriba, lista debajo). */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-4 lg:items-stretch">
+        {/* Mapa de Google */}
+        <div className="rounded-xl overflow-hidden border border-border bg-card">
+          <div className="relative w-full aspect-[16/11] sm:aspect-[16/9] lg:aspect-auto lg:h-full lg:min-h-[420px]">
+            <div ref={mapRef} className="absolute inset-0 h-full w-full" />
 
-          {status === "loading" && (
-            <div className="absolute inset-0 flex items-center justify-center bg-muted/60 backdrop-blur-sm">
-              <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                <div className="w-6 h-6 rounded-full border-2 border-current border-t-transparent animate-spin" />
-                <span className="text-sm">{language === "es" ? "Cargando mapa..." : "Loading map..."}</span>
-              </div>
-            </div>
-          )}
-
-          {status === "error" && (
-            <div className="absolute inset-0 flex items-center justify-center bg-muted/60 p-6 text-center">
-              <div className="flex flex-col items-center gap-2 text-muted-foreground max-w-sm">
-                <AlertCircle className="w-6 h-6 text-destructive" />
-                <span className="text-sm">
-                  {language === "es"
-                    ? "No se pudo cargar el mapa. Verifica la clave de Google Maps."
-                    : "The map could not be loaded. Check the Google Maps API key."}
-                </span>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* 3) Lista "Lugares cercanos" de la categoría activa */}
-      {selectedCategory && selectedCategory.places.length > 0 && (
-        <div className="rounded-xl border border-border bg-card overflow-hidden">
-          <div className="px-4 py-3 border-b border-border bg-muted/50">
-            <h3 className="font-semibold text-sm flex items-center gap-2">
-              <MapPin className="w-4 h-4" />
-              {t("nearbyPlaces")}
-            </h3>
-          </div>
-          <div className="divide-y divide-border">
-            {selectedCategory.places.map((place) => (
-              <div
-                key={place.id}
-                className="px-4 py-3 flex items-center justify-between gap-3 hover:bg-muted/30 transition-colors"
-              >
-                <div className="flex items-start gap-3">
-                  <div className="mt-0.5" style={{ color: textOnCard(selectedCategory.color, isDarkMode) }}>
-                    {CATEGORY_ICONS[selectedCategory.id]}
-                  </div>
-                  <div className="space-y-1">
-                    <h4 className="font-medium text-sm">{place.nombre}</h4>
-                    <p className="text-xs text-muted-foreground">{place.address}</p>
-                    <div className="flex items-center gap-2 text-xs flex-wrap">
-                      <span className="text-muted-foreground">Google Maps</span>
-                      <span className="text-muted-foreground">•</span>
-                      {renderTag(place, selectedCategory.color)}
-                    </div>
-                  </div>
+            {status === "loading" && (
+              <div className="absolute inset-0 flex items-center justify-center bg-muted/60 backdrop-blur-sm">
+                <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                  <div className="w-6 h-6 rounded-full border-2 border-current border-t-transparent animate-spin" />
+                  <span className="text-sm">{language === "es" ? "Cargando mapa..." : "Loading map..."}</span>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="shrink-0 transition-colors"
-                  style={{
-                    borderColor: STADIUM_COLOR,
-                    color: isDarkMode ? mix(STADIUM_COLOR, "#ffffff", 0.55) : STADIUM_COLOR,
-                  }}
-                  onClick={() => handleDirections(place)}
-                >
-                  <Navigation className="w-4 h-4 mr-1" />
-                  {t("howToGetThere")}
-                </Button>
               </div>
-            ))}
+            )}
+
+            {status === "error" && (
+              <div className="absolute inset-0 flex items-center justify-center bg-muted/60 p-6 text-center">
+                <div className="flex flex-col items-center gap-2 text-muted-foreground max-w-sm">
+                  <AlertCircle className="w-6 h-6 text-destructive" />
+                  <span className="text-sm">
+                    {language === "es"
+                      ? "No se pudo cargar el mapa. Verifica la clave de Google Maps."
+                      : "The map could not be loaded. Check the Google Maps API key."}
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
         </div>
-      )}
+
+        {/* Lista "Lugares cercanos" de la categoría activa */}
+        {selectedCategory && selectedCategory.places.length > 0 && (
+          <div className="relative rounded-xl border border-border bg-card overflow-hidden lg:min-h-[420px]">
+            {/* En lg, la lista llena la altura del mapa y hace scroll interno. */}
+            <div className="flex flex-col lg:absolute lg:inset-0">
+              <div className="px-4 py-3 border-b border-border bg-muted/50 shrink-0">
+                <h3 className="font-semibold text-sm flex items-center gap-2">
+                  <MapPin className="w-4 h-4" />
+                  {t("nearbyPlaces")}
+                </h3>
+              </div>
+              <div className="divide-y divide-border lg:overflow-y-auto lg:flex-1">
+                {selectedCategory.places.map((place) => (
+                  <div
+                    key={place.id}
+                    className="px-4 py-3 flex items-center justify-between gap-3 hover:bg-muted/30 transition-colors"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="mt-0.5" style={{ color: textOnCard(selectedCategory.color, isDarkMode) }}>
+                        {CATEGORY_ICONS[selectedCategory.id]}
+                      </div>
+                      <div className="space-y-1">
+                        <h4 className="font-medium text-sm">{place.nombre}</h4>
+                        <p className="text-xs text-muted-foreground">{place.address}</p>
+                        <div className="flex items-center gap-2 text-xs flex-wrap">
+                          <span className="text-muted-foreground">Google Maps</span>
+                          <span className="text-muted-foreground">•</span>
+                          {renderTag(place, selectedCategory.color)}
+                        </div>
+                      </div>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="shrink-0 transition-colors"
+                      style={{
+                        borderColor: STADIUM_COLOR,
+                        color: isDarkMode ? mix(STADIUM_COLOR, "#ffffff", 0.55) : STADIUM_COLOR,
+                      }}
+                      onClick={() => handleDirections(place)}
+                    >
+                      <Navigation className="w-4 h-4 mr-1" />
+                      {t("howToGetThere")}
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
