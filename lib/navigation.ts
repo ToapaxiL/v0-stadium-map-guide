@@ -284,7 +284,7 @@ const PT = {
   p4AltaSeat:    { x: 670.291, y: 289.996 }, // General Sur Alta (P4)
   p4BajaSeat:    { x: 670.292, y: 229.997 }, // General Sur Baja (P4) — se llega SOLO desde Alta
 
-  // ── Lado Sur Oriental (continuación interna desde General Sur Baja) ─���
+  // ── Lado Sur Oriental (continuación interna desde General Sur Baja) ─����
   p5Seat:        { x: 599.981, y: 170.31  }, // Tribuna Sur Oriental (P5)
   p6Seat:        { x: 537.972, y: 153.438 }, // Palco Sur Oriental (P6)
 
@@ -697,6 +697,56 @@ function makeNorthEastWestRoute(north: number, south: number, dir: "n2s" | "s2n"
       totalSteps: steps.length,
       usesExterior: true,
       gateTrace: dir === "s2n" ? [south, 1, streetGate, north] : [north, streetGate, 1, south],
+      specialPath: path,
+      specialMeters: metersOf(path),
+    }
+  }
+}
+
+// ============================================================
+// Palco Norte Occidental (P11) ↔ General Norte Oriental (P9 Oriental).
+// Desde P11 NO se baja a la Plazoleta ni a La Esperanza: se sale por la Puerta
+// 10-11 a la calle H. Vans Risn, se entra por la Puerta 9W y se sube por
+// General Norte hasta General Norte Oriental. El trazo (specialPath) refleja
+// exactamente ese recorrido para que mapa e indicaciones coincidan.
+// ============================================================
+function makeWestBoxToNorthEastRoute(dir: "n2s" | "s2n"): SpecialRouteBuilder {
+  return (lang) => {
+    const es = lang === "es"
+    const gw = es ? "Puerta" : "Gate"
+    // Forward = desde P11 hacia General Norte Oriental.
+    const forward: Pt[] = [
+      PT.p11Seat, PT.p10Seat, PT.p1011Corner, PT.p1011Exterior,
+      PT.p9wExterior, PT.p9OccJunction, PT.p9OccSeat, PT.p9OriSeat,
+    ]
+    const path = dir === "n2s" ? forward : [...forward].reverse()
+    const p11 = { es: "Palco Norte Occidental", en: "North West Box", gate: "11" }
+    const p9o = { es: "General Norte Oriental", en: "North East General", gate: "9" }
+    const steps: RouteStep[] = []
+
+    if (dir === "n2s") {
+      steps.push({ type: "start", instruction: es ? p11.es : p11.en, detail: `${gw} ${p11.gate}`, icon: "pin" })
+      steps.push({ type: "internal", instruction: es ? "Camina hasta la Puerta 10-11" : "Walk to Gate 10-11", icon: "walk" })
+      steps.push({ type: "external", instruction: es ? "Sal por la Puerta 10-11" : "Exit through Gate 10-11", icon: "exit" })
+      steps.push({ type: "external", instruction: es ? "Camina por H. Vans Risn siguiendo la ruta señalizada" : "Walk along H. Vans Risn following the marked route", icon: "walk" })
+      steps.push({ type: "external", instruction: es ? "Ingresa por la Puerta 9W" : "Enter through Gate 9W", icon: "enter" })
+      steps.push({ type: "internal", instruction: es ? "Camina por General Norte hasta General Norte Oriental" : "Walk through North General to North East General", icon: "walk" })
+      steps.push({ type: "arrive", instruction: es ? p9o.es : p9o.en, detail: `${gw} ${p9o.gate}`, icon: "flag" })
+    } else {
+      steps.push({ type: "start", instruction: es ? p9o.es : p9o.en, detail: `${gw} ${p9o.gate}`, icon: "pin" })
+      steps.push({ type: "internal", instruction: es ? "Camina por General Norte hasta la Puerta 9W" : "Walk through North General to Gate 9W", icon: "walk" })
+      steps.push({ type: "external", instruction: es ? "Sal por la Puerta 9W" : "Exit through Gate 9W", icon: "exit" })
+      steps.push({ type: "external", instruction: es ? "Camina por H. Vans Risn siguiendo la ruta señalizada" : "Walk along H. Vans Risn following the marked route", icon: "walk" })
+      steps.push({ type: "external", instruction: es ? "Ingresa por la Puerta 10-11" : "Enter through Gate 10-11", icon: "enter" })
+      steps.push({ type: "internal", instruction: es ? "Camina hasta la Puerta 11" : "Walk to Gate 11", icon: "walk" })
+      steps.push({ type: "arrive", instruction: es ? p11.es : p11.en, detail: `${gw} ${p11.gate}`, icon: "flag" })
+    }
+
+    return {
+      steps,
+      totalSteps: steps.length,
+      usesExterior: true,
+      gateTrace: dir === "n2s" ? [11, 10, 9] : [9, 10, 11],
       specialPath: path,
       specialMeters: metersOf(path),
     }
@@ -1188,6 +1238,10 @@ const SPECIAL_ROUTES: Record<string, SpecialRouteBuilder> = {
   //    (Cacica Quilago) que resuelve el motor genérico.
   "plazoleta|general-norte-oriental":                makeNorthEastWestRoute(9, 1, "s2n"),
   "general-norte-oriental|plazoleta":                makeNorthEastWestRoute(9, 1, "n2s"),
+  // Desde P11 a General Norte Oriental: sal por la Puerta 10-11, entra por la
+  // Puerta 9W y sube por General Norte. Trazo dedicado (sin Plazoleta).
+  "palco-norte-occidental|general-norte-oriental":   makeWestBoxToNorthEastRoute("n2s"),
+  "general-norte-oriental|palco-norte-occidental":   makeWestBoxToNorthEastRoute("s2n"),
   // Desde P2 a General Norte Oriental se cruza el paso entre palcos a P11 y se
   // sigue la ruta designada P11→P9 (sal por Puerta 11, sal por Puerta 10-11 y
   // entra por la Puerta 9W). No se rodea por la Plazoleta (P1) ni La Esperanza.
