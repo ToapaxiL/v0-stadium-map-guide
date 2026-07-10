@@ -19,6 +19,17 @@ const CATEGORY_ICONS: Record<string, React.ReactNode> = {
   atm: <Banknote className="w-4 h-4" />,
 }
 
+// Trazado SVG (viewBox 24x24, estilo lucide) de cada icono de categoría, para
+// dibujarlo dentro del marcador circular del mapa.
+const CATEGORY_ICON_PATHS: Record<string, string> = {
+  pharmacies: '<path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/>',
+  transport:
+    '<path d="M8 6v6"/><path d="M15 6v6"/><path d="M2 12h19.6"/><path d="M18 18h3s.5-1.7.8-2.8c.1-.4.2-.8.2-1.2 0-.4-.1-.8-.2-1.2l-1.4-5C20.1 6.8 19.1 6 18 6H4a2 2 0 0 0-2 2v10h3"/><circle cx="7" cy="18" r="2"/><path d="M9 18h5"/><circle cx="16" cy="18" r="2"/>',
+  hospitals:
+    '<path d="M12 6v4"/><path d="M14 14h-4"/><path d="M14 18h-4"/><path d="M14 8h-4"/><path d="M18 12h2a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-6a2 2 0 0 1 2-2h2"/><path d="M18 22V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v18"/>',
+  atm: '<rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01"/><path d="M18 12h.01"/>',
+}
+
 // --- Utilidades de color de marca ---
 // Los colores viven en lib/nearby-places.ts (paleta oficial). Aquí derivamos
 // variantes legibles para chips activos, badges e iconos en claro y oscuro.
@@ -61,6 +72,26 @@ function textOnCard(hex: string, isDark: boolean) {
   }
   // en claro: oscurecer los colores muy claros (amarillo, azul claro)
   return luminance(hex) > 0.6 ? mix(hex, "#000000", 0.45) : hex
+}
+
+// Marcador circular tipo "insignia" (como los POI nativos de Google): un
+// círculo relleno con el color de la categoría, borde blanco y el icono de la
+// categoría en blanco al centro. Se usa para los servicios cercanos, para
+// diferenciarlos del pin principal del estadio.
+function circleMarkerIcon(color: string, iconId: string): google.maps.Icon {
+  const size = 40
+  const paths = CATEGORY_ICON_PATHS[iconId] ?? ""
+  const svg =
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 40 40">` +
+    `<circle cx="20" cy="20" r="14" fill="${color}" stroke="#ffffff" stroke-width="3"/>` +
+    `<g transform="translate(10,10) scale(0.833)" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">${paths}</g>` +
+    `</svg>`
+  return {
+    url: "data:image/svg+xml;charset=UTF-8," + encodeURIComponent(svg),
+    scaledSize: new google.maps.Size(size, size),
+    anchor: new google.maps.Point(size / 2, size / 2),
+    labelOrigin: new google.maps.Point(size / 2, size / 2),
+  }
 }
 
 // Marcador SVG en forma de pin, coloreado
@@ -113,7 +144,7 @@ export function NearbyMap({ isDarkMode }: NearbyMapProps) {
         position: { lat: place.lat, lng: place.lng },
         map,
         title: place.nombre,
-        icon: pinIcon(category.color, 1.3),
+        icon: circleMarkerIcon(category.color, category.id),
         zIndex: 10,
       })
       marker.addListener("click", () => {
