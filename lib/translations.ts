@@ -19,7 +19,7 @@ export const translations = {
     selectDestination: "Selecciona tu destino",
     whereWantToGo: "¿A dónde quieres ir?",
     calculateRoute: "Calcular ruta",
-    clear: "Limpiar",
+    clear: "Borrar",
     yourRoute: "Tu ruta",
     sections: "Secciones",
     referencePoints: "Puntos de referencia",

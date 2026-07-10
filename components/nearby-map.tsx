@@ -40,11 +40,6 @@ function luminance(hex: string) {
   return (0.299 * r + 0.587 * g + 0.114 * b) / 255
 }
 
-// Texto legible sobre un fondo sólido del color dado (blanco o azul andino)
-function textOnFill(hex: string) {
-  return luminance(hex) > 0.6 ? "#1e345b" : "#ffffff"
-}
-
 // Mezcla un color con blanco o negro para asegurar contraste sobre la tarjeta
 function mix(hex: string, target: "#ffffff" | "#000000", ratio: number) {
   const c = hexToRgb(hex)
@@ -224,13 +219,15 @@ export function NearbyMap({ isDarkMode }: NearbyMapProps) {
     return active ? "" : "border-border hover:bg-muted text-foreground"
   }
 
-  // Estilo del chip activo con el color de marca de la categoría
+  // Estilo del chip activo con el color de marca de la categoría.
+  // El texto y el icono siempre van en blanco (como en Hospitales), sin
+  // importar el color de la categoría, para un estado activo uniforme.
   const chipStyle = (category: PlaceCategory): React.CSSProperties | undefined => {
     if (activeCategory !== category.id) return undefined
     return {
       backgroundColor: category.color,
       borderColor: category.color,
-      color: textOnFill(category.color),
+      color: "#ffffff",
     }
   }
 
@@ -354,8 +351,6 @@ export function NearbyMap({ isDarkMode }: NearbyMapProps) {
                         <h4 className="font-medium text-sm">{place.nombre}</h4>
                         <p className="text-xs text-muted-foreground">{place.address}</p>
                         <div className="flex items-center gap-2 text-xs flex-wrap">
-                          <span className="text-muted-foreground">Google Maps</span>
-                          <span className="text-muted-foreground">•</span>
                           {renderTag(place, selectedCategory.color)}
                         </div>
                       </div>
