@@ -25,3 +25,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# v0 debug/screenshot artifacts
+.v0-*.png
+--clip
