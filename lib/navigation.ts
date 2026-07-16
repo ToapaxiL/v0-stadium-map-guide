@@ -145,6 +145,8 @@ const T = {
     passageP7P6:    "Cruza del Palco Norte Oriental (Puerta 7) al Palco Sur Oriental (Puerta 6) por el paso interno habilitado entre palcos",
     passageP11P2:   "Cruza del Palco Norte Occidental (Puerta 11) al Palco Sur Occidental (Puerta 2) por el paso interno habilitado entre palcos",
     passageP2P11:   "Cruza del Palco Sur Occidental (Puerta 2) al Palco Norte Occidental (Puerta 11) por el paso interno habilitado entre palcos",
+    passageP3P10:   "Cruza de Tribuna Sur Occidental (Puerta 3) a Tribuna Norte Occidental (Puerta 10) por el acceso interno habilitado solo entre tribunas",
+    passageP10P3:   "Cruza de Tribuna Norte Occidental (Puerta 10) a Tribuna Sur Occidental (Puerta 3) por el acceso interno habilitado solo entre tribunas",
   },
   en: {
     walkCorridor:   "Walk through the indoor corridor",
@@ -165,6 +167,8 @@ const T = {
     passageP7P6:    "Cross from North East Box (Gate 7) to South East Box (Gate 6) through the internal passage enabled between the boxes",
     passageP11P2:   "Cross from North West Box (Gate 11) to South West Box (Gate 2) through the internal passage enabled between the boxes",
     passageP2P11:   "Cross from South West Box (Gate 2) to North West Box (Gate 11) through the internal passage enabled between the boxes",
+    passageP3P10:   "Cross from South West Stand (Gate 3) to North West Stand (Gate 10) through the internal access enabled only between the stands",
+    passageP10P3:   "Cross from North West Stand (Gate 10) to South West Stand (Gate 3) through the internal access enabled only between the stands",
   },
 }
 
@@ -284,7 +288,7 @@ const PT = {
   p4AltaSeat:    { x: 670.291, y: 289.996 }, // General Sur Alta (P4)
   p4BajaSeat:    { x: 670.292, y: 229.997 }, // General Sur Baja (P4) — se llega SOLO desde Alta
 
-  // ── Lado Sur Oriental (continuación interna desde General Sur Baja) ─����
+  // ── Lado Sur Oriental (continuación interna desde General Sur Baja) ─�����
   p5Seat:        { x: 599.981, y: 170.31  }, // Tribuna Sur Oriental (P5)
   p6Seat:        { x: 537.972, y: 153.438 }, // Palco Sur Oriental (P6)
 
@@ -618,6 +622,42 @@ function makePalcoSouthViaP11(destId: string, dir: "from" | "to"): SpecialRouteB
       gateTrace: [...base.gateTrace, 2],
       specialPath,
       specialMeters: metersOf(specialPath),
+    }
+  }
+}
+
+// ============================================================
+// Acceso interno SOLO-TRIBUNAS del lado Occidental:
+// Tribuna Sur Occidental (P3) ↔ Tribuna Norte Occidental (P10).
+// Es un paso habilitado únicamente entre estas dos tribunas; recorre el anillo
+// occidental sin salir al exterior (no rodea por la Puerta 1 ni La Esperanza).
+// ============================================================
+function makeTribunaWestPassageRoute(dir: "s2n" | "n2s"): SpecialRouteBuilder {
+  return (lang) => {
+    const es = lang === "es"
+    const gw = es ? "Puerta" : "Gate"
+    const p3 = { es: "Tribuna Sur Occidental", en: "South West Stand", gate: "3" }
+    const p10 = { es: "Tribuna Norte Occidental", en: "North West Stand", gate: "10" }
+    const from = dir === "s2n" ? p3 : p10
+    const to = dir === "s2n" ? p10 : p3
+    const passage: RouteStep = {
+      type: "internal",
+      instruction: dir === "s2n" ? T[lang].passageP3P10 : T[lang].passageP10P3,
+      icon: "enter",
+    }
+    const steps: RouteStep[] = [
+      { type: "start", instruction: es ? from.es : from.en, detail: `${gw} ${from.gate}`, icon: "pin" },
+      passage,
+      { type: "arrive", instruction: es ? to.es : to.en, detail: `${gw} ${to.gate}`, icon: "flag" },
+    ]
+    const path = dir === "s2n" ? [PT.p3Seat, PT.p10Seat] : [PT.p10Seat, PT.p3Seat]
+    return {
+      steps,
+      totalSteps: steps.length,
+      usesExterior: false,
+      gateTrace: dir === "s2n" ? [3, 10] : [10, 3],
+      specialPath: path,
+      specialMeters: metersOf(path),
     }
   }
 }
@@ -1196,8 +1236,10 @@ const SPECIAL_ROUTES: Record<string, SpecialRouteBuilder> = {
   // la ruta designada P11→destino (no se rodea por Plazoleta/La Esperanza).
   "tribuna-norte-occidental|palco-sur-occidental":   makePalcoSouthViaP11("tribuna-norte-occidental", "to"),
   "palco-sur-occidental|tribuna-norte-occidental":   makePalcoSouthViaP11("tribuna-norte-occidental", "from"),
-  "tribuna-norte-occidental|tribuna-sur-occidental": makeWestLoopRoute(10, 3, "n2s"),
-  "tribuna-sur-occidental|tribuna-norte-occidental": makeWestLoopRoute(10, 3, "s2n"),
+  // Acceso interno SOLO entre tribunas del lado occidental (P3 ↔ P10): paso
+  // directo por el anillo, sin rodear por la Puerta 1 / La Esperanza.
+  "tribuna-norte-occidental|tribuna-sur-occidental": makeTribunaWestPassageRoute("n2s"),
+  "tribuna-sur-occidental|tribuna-norte-occidental": makeTribunaWestPassageRoute("s2n"),
   // Plazoleta (P1) ↔ Palco Norte Occidental (P11): se pasa por el Palco Sur
   // Occidental (P2) — ruta interna P1↔P2 ya designada — y de ahí el paso interno
   // P2↔P11. No se rodea por la Puerta 10-11.
