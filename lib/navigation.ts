@@ -147,6 +147,8 @@ const T = {
     passageP2P11:   "Cruza del Palco Sur Occidental (Puerta 2) al Palco Norte Occidental (Puerta 11) por el paso interno habilitado entre palcos",
     passageP3P10:   "Cruza de Tribuna Sur Occidental (Puerta 3) a Tribuna Norte Occidental (Puerta 10) por el acceso interno habilitado solo entre tribunas",
     passageP10P3:   "Cruza de Tribuna Norte Occidental (Puerta 10) a Tribuna Sur Occidental (Puerta 3) por el acceso interno habilitado solo entre tribunas",
+    passageP8P5:    "Cruza de Tribuna Norte Oriental (Puerta 8) a Tribuna Sur Oriental (Puerta 5) por el acceso interno habilitado solo entre tribunas",
+    passageP5P8:    "Cruza de Tribuna Sur Oriental (Puerta 5) a Tribuna Norte Oriental (Puerta 8) por el acceso interno habilitado solo entre tribunas",
   },
   en: {
     walkCorridor:   "Walk through the indoor corridor",
@@ -169,6 +171,8 @@ const T = {
     passageP2P11:   "Cross from South West Box (Gate 2) to North West Box (Gate 11) through the internal passage enabled between the boxes",
     passageP3P10:   "Cross from South West Stand (Gate 3) to North West Stand (Gate 10) through the internal access enabled only between the stands",
     passageP10P3:   "Cross from North West Stand (Gate 10) to South West Stand (Gate 3) through the internal access enabled only between the stands",
+    passageP8P5:    "Cross from North East Stand (Gate 8) to South East Stand (Gate 5) through the internal access enabled only between the stands",
+    passageP5P8:    "Cross from South East Stand (Gate 5) to North East Stand (Gate 8) through the internal access enabled only between the stands",
   },
 }
 
@@ -656,6 +660,43 @@ function makeTribunaWestPassageRoute(dir: "s2n" | "n2s"): SpecialRouteBuilder {
       totalSteps: steps.length,
       usesExterior: false,
       gateTrace: dir === "s2n" ? [3, 10] : [10, 3],
+      specialPath: path,
+      specialMeters: metersOf(path),
+    }
+  }
+}
+
+// ============================================================
+// Acceso interno SOLO-TRIBUNAS del lado Oriental:
+// Tribuna Norte Oriental (P8) ↔ Tribuna Sur Oriental (P5).
+// Igual que el paso occidental P3↔P10, pero en el anillo oriental: cruce directo
+// habilitado únicamente entre estas dos tribunas, sin salir al exterior ni pasar
+// por los palcos (P6/P7).
+// ============================================================
+function makeTribunaEastPassageRoute(dir: "n2s" | "s2n"): SpecialRouteBuilder {
+  return (lang) => {
+    const es = lang === "es"
+    const gw = es ? "Puerta" : "Gate"
+    const p8 = { es: "Tribuna Norte Oriental", en: "North East Stand", gate: "8" }
+    const p5 = { es: "Tribuna Sur Oriental", en: "South East Stand", gate: "5" }
+    const from = dir === "n2s" ? p8 : p5
+    const to = dir === "n2s" ? p5 : p8
+    const passage: RouteStep = {
+      type: "internal",
+      instruction: dir === "n2s" ? T[lang].passageP8P5 : T[lang].passageP5P8,
+      icon: "enter",
+    }
+    const steps: RouteStep[] = [
+      { type: "start", instruction: es ? from.es : from.en, detail: `${gw} ${from.gate}`, icon: "pin" },
+      passage,
+      { type: "arrive", instruction: es ? to.es : to.en, detail: `${gw} ${to.gate}`, icon: "flag" },
+    ]
+    const path = dir === "n2s" ? [PT.p8Seat, PT.p5Seat] : [PT.p5Seat, PT.p8Seat]
+    return {
+      steps,
+      totalSteps: steps.length,
+      usesExterior: false,
+      gateTrace: dir === "n2s" ? [8, 5] : [5, 8],
       specialPath: path,
       specialMeters: metersOf(path),
     }
@@ -1240,6 +1281,10 @@ const SPECIAL_ROUTES: Record<string, SpecialRouteBuilder> = {
   // directo por el anillo, sin rodear por la Puerta 1 / La Esperanza.
   "tribuna-norte-occidental|tribuna-sur-occidental": makeTribunaWestPassageRoute("n2s"),
   "tribuna-sur-occidental|tribuna-norte-occidental": makeTribunaWestPassageRoute("s2n"),
+  // Acceso interno SOLO entre tribunas del lado oriental (P8 ↔ P5): cruce
+  // directo por el anillo, sin pasar por los palcos (P6/P7).
+  "tribuna-norte-oriental|tribuna-sur-oriental":     makeTribunaEastPassageRoute("n2s"),
+  "tribuna-sur-oriental|tribuna-norte-oriental":     makeTribunaEastPassageRoute("s2n"),
   // Plazoleta (P1) ↔ Palco Norte Occidental (P11): se pasa por el Palco Sur
   // Occidental (P2) — ruta interna P1↔P2 ya designada — y de ahí el paso interno
   // P2↔P11. No se rodea por la Puerta 10-11.
