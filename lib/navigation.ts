@@ -20,6 +20,8 @@ export interface RouteStep {
   instruction: string
   detail?: string
   icon: "pin" | "walk" | "exit" | "enter" | "flag"
+  /** Nivel destino al tomar el ascensor/escaleras; muestra una insignia "↑ NIVEL X". */
+  levelBadge?: number
 }
 
 export interface RouteResult {
@@ -1103,7 +1105,7 @@ function plazoletaWestIngresoSteps(gate: string, lang: "es" | "en"): RouteStep[]
   if (lang === "es") {
     return [
       { type: "internal", icon: "walk", instruction: "Dirígete al ingreso occidental, ubicado junto a la plazoleta." },
-      { type: "internal", icon: "enter", instruction: "Usa el ascensor o las escaleras y quédate en el NIVEL 1." },
+      { type: "internal", icon: "enter", instruction: "Usa el ascensor o las escaleras y quédate en el NIVEL 1.", levelBadge: 1 },
       {
         type: "internal",
         icon: "walk",
@@ -1113,7 +1115,7 @@ function plazoletaWestIngresoSteps(gate: string, lang: "es" | "en"): RouteStep[]
   }
   return [
     { type: "internal", icon: "walk", instruction: "Head to the west entrance, next to the plaza." },
-    { type: "internal", icon: "enter", instruction: "Take the elevator or the stairs and stay on LEVEL 1." },
+    { type: "internal", icon: "enter", instruction: "Take the elevator or the stairs and stay on LEVEL 1.", levelBadge: 1 },
     {
       type: "internal",
       icon: "walk",
