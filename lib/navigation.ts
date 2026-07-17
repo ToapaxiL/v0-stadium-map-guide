@@ -1096,17 +1096,30 @@ function makeSurInternalRoute(from: SurNode, to: SurNode): SpecialRouteBuilder {
 // su builder original.
 // ============================================================
 
-// Paso de "ingreso occidental" (ascensor/escaleras, Nivel 1) hasta la Puerta
-// indicada. Usado por los destinos del bloque occidental (P2, P3, P11).
-function plazoletaWestIngresoStep(gate: string, lang: "es" | "en"): RouteStep {
-  return {
-    type: "internal",
-    icon: "enter",
-    instruction:
-      lang === "es"
-        ? `Dirígete al ingreso occidental, ubicado junto a la plazoleta. Usa el ascensor o las escaleras y quédate en el NIVEL 1. Al salir del ascensor, avanza por el corredor principal hacia la derecha y continúa hasta la Puerta ${gate}.`
-        : `Head to the west entrance, next to the plaza. Take the elevator or the stairs and stay on LEVEL 1. When you exit the elevator, walk along the main corridor to the right and continue to Gate ${gate}.`,
+// Pasos del "ingreso occidental" (ascensor/escaleras, Nivel 1) hasta la Puerta
+// indicada. Dividido en 3 etapas para que las indicaciones sean más claras.
+// Usado por los destinos del bloque occidental (P2, P3, P11).
+function plazoletaWestIngresoSteps(gate: string, lang: "es" | "en"): RouteStep[] {
+  if (lang === "es") {
+    return [
+      { type: "internal", icon: "walk", instruction: "Dirígete al ingreso occidental, ubicado junto a la plazoleta." },
+      { type: "internal", icon: "enter", instruction: "Usa el ascensor o las escaleras y quédate en el NIVEL 1." },
+      {
+        type: "internal",
+        icon: "walk",
+        instruction: `Al salir del ascensor, avanza por el corredor principal hacia la derecha y continúa hasta la Puerta ${gate}.`,
+      },
+    ]
   }
+  return [
+    { type: "internal", icon: "walk", instruction: "Head to the west entrance, next to the plaza." },
+    { type: "internal", icon: "enter", instruction: "Take the elevator or the stairs and stay on LEVEL 1." },
+    {
+      type: "internal",
+      icon: "walk",
+      instruction: `When you exit the elevator, walk along the main corridor to the right and continue to Gate ${gate}.`,
+    },
+  ]
 }
 
 // Plazoleta (P1) → Palco Sur Occidental (P2): ingreso occidental hasta P2.
@@ -1115,7 +1128,7 @@ function makePlazoletaToPalcoSurOcc(): SpecialRouteBuilder {
     const gw = lang === "es" ? "Puerta" : "Gate"
     const steps: RouteStep[] = [
       { type: "start", instruction: getSectionName("plazoleta", lang), detail: `${gw} 1`, icon: "pin" },
-      plazoletaWestIngresoStep("2", lang),
+      ...plazoletaWestIngresoSteps("2", lang),
       { type: "arrive", instruction: getSectionName("palco-sur-occidental", lang), detail: `${gw} 2`, icon: "flag" },
     ]
     return { steps, totalSteps: steps.length, usesExterior: false, gateTrace: [1, 2] }
@@ -1128,7 +1141,7 @@ function makePlazoletaToTribunaSurOcc(): SpecialRouteBuilder {
     const gw = lang === "es" ? "Puerta" : "Gate"
     const steps: RouteStep[] = [
       { type: "start", instruction: getSectionName("plazoleta", lang), detail: `${gw} 1`, icon: "pin" },
-      plazoletaWestIngresoStep("3", lang),
+      ...plazoletaWestIngresoSteps("3", lang),
       { type: "arrive", instruction: getSectionName("tribuna-sur-occidental", lang), detail: `${gw} 3`, icon: "flag" },
     ]
     return { steps, totalSteps: steps.length, usesExterior: false, gateTrace: [1, 2, 3] }
@@ -1144,7 +1157,7 @@ function makePlazoletaToPalcoNorteOcc(): SpecialRouteBuilder {
     const start = r.steps[0]
     const arrive = r.steps[r.steps.length - 1]
     const passage: RouteStep = { type: "internal", instruction: T[lang].passageP2P11, icon: "enter" }
-    const steps: RouteStep[] = [start, plazoletaWestIngresoStep("2", lang), passage, arrive]
+    const steps: RouteStep[] = [start, ...plazoletaWestIngresoSteps("2", lang), passage, arrive]
     return { ...r, steps, totalSteps: steps.length }
   }
 }
@@ -1393,7 +1406,7 @@ const SPECIAL_ROUTES: Record<string, SpecialRouteBuilder> = {
   "palco-norte-occidental|palco-norte-oriental":     makePalcoNorthViaP2("palco-norte-oriental", "from"),
   "palco-norte-oriental|palco-norte-occidental":     makePalcoNorthViaP2("palco-norte-oriental", "to"),
 
-  // ── General Norte Occidental (P9) ↔ Sur Occidental {P1, P2, P3} ──
+  // ── General Norte Occidental (P9) ↔ Sur Occidental {P1, P2, P3} ─���
   //    Enlace vertical interno hasta la Puerta 9W → H. Vans Risn → La Esperanza.
   "general-norte-occidental|plazoleta":              makeWestLoopRoute(9, 1, "n2s"),
   "plazoleta|general-norte-occidental":              withPlazoletaExteriorText(makeWestLoopRoute(9, 1, "s2n"), 400),
