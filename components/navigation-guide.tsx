@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { calculateRoute, getSectionName, ALL_SECTIONS, type RouteResult, type RouteStep } from "@/lib/navigation"
 import { routeDistanceMeters, routeTimeRange, formatMinutes } from "@/lib/route-metrics"
-import { Navigation, ArrowUpDown, MapPin, Footprints, DoorOpen, DoorClosed, Flag, TriangleAlert, ChevronDown, Clock } from "lucide-react"
+import { Navigation, ArrowUpDown, ArrowUp, MapPin, Footprints, DoorOpen, DoorClosed, Flag, TriangleAlert, ChevronDown, Clock } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { StadiumRouteMap } from "./stadium-route-map"
 import { useLanguage } from "@/lib/language-context"
@@ -305,6 +305,12 @@ export function NavigationGuide({ onRouteActiveChange }: { onRouteActiveChange?:
                         <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
                           {step.detail}
                         </p>
+                      )}
+                      {typeof step.levelBadge === "number" && (
+                        <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-primary px-2.5 py-1 text-xs font-bold text-primary-foreground">
+                          <ArrowUp className="w-3.5 h-3.5" aria-hidden="true" />
+                          {language === "es" ? `NIVEL ${step.levelBadge}` : `LEVEL ${step.levelBadge}`}
+                        </span>
                       )}
                     </div>
                     <div className={cn("mt-0.5 shrink-0", cfg.icon)}>
