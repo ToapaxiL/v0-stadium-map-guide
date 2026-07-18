@@ -81,7 +81,7 @@ export function StadiumMap() {
   return (
     <div className="min-h-screen bg-background">
       {isZoomed && (
-        <ZoomableImage src="/images/stadium-map-v2.png" alt={t("stadiumGuide")} onClose={() => setIsZoomed(false)} />
+        <ZoomableImage src="/images/mapa-general-final.svg" alt={t("stadiumGuide")} onClose={() => setIsZoomed(false)} />
       )}
 
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
@@ -184,10 +184,10 @@ export function StadiumMap() {
                     onMouseLeave={() => setIsHoveringImage(false)}
                   >
                     <Image
-                      src="/images/stadium-map-v2.png"
+                      src="/images/mapa-general-final.svg"
                       alt={t("stadiumGuide")}
                       width={2000}
-                      height={1414}
+                      height={1334}
                       className="w-full h-auto"
                       priority
                       draggable={false}
