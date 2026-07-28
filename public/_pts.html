@@ -1,0 +1,9 @@
+<!doctype html><html><head><style>html,body{margin:0}</style></head><body>
+<div style="position:relative;width:1500px">
+<img src="/images/mapa-rutas.svg" style="width:1500px;display:block">
+<svg viewBox="0 0 850.394 566.929" style="position:absolute;inset:0;width:100%;height:100%"><g id="g"></g></svg>
+<script>
+const P=[["Puerta 1",226.996,348.188],["Debajo P.Playa Roja",409.190,363.356],["Sobre Av.Kennedy",474.215,390.346],["Der. P.Amarilla",537.973,363.356],["Extremo der.",599.981,348.188]];
+const g=document.getElementById('g'),NS='http://www.w3.org/2000/svg';
+P.forEach(([n,x,y],i)=>{const c=document.createElementNS(NS,'circle');c.setAttribute('cx',x);c.setAttribute('cy',y);c.setAttribute('r',4);c.setAttribute('fill','#e11d48');c.setAttribute('stroke','#fff');c.setAttribute('stroke-width',0.6);g.appendChild(c);const t=document.createElementNS(NS,'text');t.setAttribute('x',x+4.5);t.setAttribute('y',y-2);t.setAttribute('font-size',7);t.setAttribute('font-weight','bold');t.setAttribute('fill','#0000cc');t.textContent=i+":"+n;g.appendChild(t);});
+</script></div></body></html>
