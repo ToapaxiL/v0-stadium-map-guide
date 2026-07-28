@@ -4,19 +4,16 @@
 // Fuente de verdad compartida por el encabezado "Ruta calculada".
 //
 // DISTANCIA (exacta, nunca aproximada):
-//   - Entre secciones contiguas del anillo: 100 m por tramo.
-//   - Excepciones de 50 m:
-//       · Palco Sur Occidental ↔ Plazoleta
-//       · Plazoleta ↔ Palco Norte Occidental
-//       · General Sur Alta ↔ General Sur Baja
-//       · General Norte Oriental ↔ General Norte Occidental
+//   - Entre cada punto contiguo (anillo o corredor exterior): 50 m por tramo.
 //
-// TIEMPO (rango ESTRECHO en minutos ENTEROS, realista con público):
-//   200 m: 3–4 min
-//   400 m: 6–8 min
-//   600 m: 9–12 min
-//   800 m: 12–16 min
-//   Ritmo fluido → tráfico peatonal denso. Nunca se usan decimales.
+// TIEMPO (minutos ENTEROS, realista con público):
+//   Regla base EXACTA: 100 m = 1 min (50 m = 0,5 min).
+//   El valor base sigue la regla; el rango añade +1 min de margen.
+//   200 m: 2–3 min
+//   400 m: 4–5 min
+//   600 m: 6–7 min
+//   800 m: 8–9 min
+//   Nunca se usan decimales.
 // ============================================================
 
 import type { RouteResult } from "./navigation"
@@ -49,19 +46,12 @@ function indicesForGate(g: number): number[] {
   return r
 }
 
-// Tramos contiguos de 50 m (todos los demás = 100 m). Pares de índices del anillo.
-// 8-9:  Palco Sur Occidental ↔ Plazoleta
-// 9-10: Plazoleta ↔ Palco Norte Occidental
-// 5-6:  General Sur Alta ↔ General Sur Baja
-// 12-0: General Norte Occidental ↔ General Norte Oriental (envuelve el anillo)
-const HALF_STEPS = new Set(["8-9", "9-10", "5-6", "0-12"])
+// Regla de distancia: entre cada punto contiguo del anillo hay 50 m.
+const METERS_PER_STEP = 50
 
 // Distancia (m) de un paso entre dos índices contiguos del anillo.
-function stepMeters(a: number, b: number): number {
-  const lo = Math.min(a, b)
-  const hi = Math.max(a, b)
-  if (HALF_STEPS.has(`${lo}-${hi}`)) return 50
-  return 100
+function stepMeters(_a: number, _b: number): number {
+  return METERS_PER_STEP
 }
 
 // Distancia en pasos del anillo (arco más corto) entre dos índices.
@@ -126,13 +116,12 @@ export function routeDistanceMeters(result: RouteResult): number {
   return m
 }
 
-// Ritmos realistas para un estadio con público (concourse con gente en
-// movimiento, sin llegar a aglomeración extrema). Rango estrecho:
-//   - Bajo:  3 min por 200 m  (0.015 min/m)  → paso fluido entre gente
-//   - Alto:  4 min por 200 m  (0.020 min/m)  → tráfico peatonal denso
-// Ejemplos: 200 m ≈ 3–4 min · 400 m ≈ 6–8 min · 600 m ≈ 9–12 min · 800 m ≈ 12–16 min
-const LOW_RATE = 0.015
-const HIGH_RATE = 0.02
+// Regla base EXACTA: 100 m = 1 min → 0.01 min/m (equivale a 50 m = 0,5 min).
+// El valor central se calcula con esta regla; el rango solo añade un pequeño
+// margen (±1 min) para reflejar el ritmo con público, sin cambiar la regla.
+// Ejemplos (valor base): 50 m ≈ 1 min · 100 m = 1 min · 200 m = 2 min ·
+// 600 m = 6 min · 1000 m = 10 min.
+const RATE = 0.01
 
 export interface RouteTime {
   /** Minutos, ritmo fluido con público. */
@@ -141,20 +130,20 @@ export interface RouteTime {
   highMin: number
 }
 
-/** Rango de tiempo estimado realista con público. Siempre enteros. */
+/**
+ * Rango de tiempo estimado, siempre enteros. El valor base sigue EXACTO la
+ * regla 100 m = 1 min; el rango añade +1 min de margen por tráfico con público.
+ */
 export function routeTimeRange(meters: number): RouteTime {
-  const lowMin = Math.max(1, Math.round(meters * LOW_RATE))
-  let highMin = Math.round(meters * HIGH_RATE)
-  if (highMin <= lowMin) highMin = lowMin + 1
-  return { lowMin, highMin }
+  const base = Math.max(1, Math.round(meters * RATE))
+  return { lowMin: base, highMin: base + 1 }
 }
 
 /**
- * Rango de tiempo de una ruta. Respeta `specialTime` (medición en sitio) cuando
- * existe; si no, lo estima desde la distancia con el ritmo general.
+ * Rango de tiempo de una ruta, estimado desde su distancia con la regla global
+ * (100 m = 1 min, con +1 min de margen por tráfico peatonal).
  */
 export function routeTimeFor(result: RouteResult): RouteTime {
-  if (result.specialTime) return result.specialTime
   return routeTimeRange(routeDistanceMeters(result))
 }
 

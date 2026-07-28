@@ -40,12 +40,6 @@ export interface RouteResult {
   specialPath?: { x: number; y: number }[]
   /** Distancia EXACTA en metros para rutas especiales (sobrescribe el cálculo por anillo). */
   specialMeters?: number
-  /**
-   * Rango de tiempo (min) medido en sitio para rutas especiales cuyo ritmo NO
-   * corresponde al cálculo global por distancia (p. ej. el corredor exterior).
-   * Si está presente, el encabezado lo usa tal cual.
-   */
-  specialTime?: { lowMin: number; highMin: number }
 }
 
 const SECTION_GATES: Record<string, number> = {
@@ -370,25 +364,14 @@ function metersOf(pts: { x: number; y: number }[]): number {
   return Math.round((polyLength(pts) * METERS_PER_SVG_UNIT) / 10) * 10
 }
 
-// El corredor exterior (Plazoleta → Puerta 1 → Av. J.F. Kennedy → Calle Cacica
-// Quilago) está DIBUJADO más largo que la caminata real. Medición en sitio:
-// Plazoleta → General Sur Alta ≈ 600 m en ~8–10 min. El cálculo geométrico da
-// ~970 m, así que se aplica un factor de escala y un ritmo propios.
-const CORRIDOR_SCALE = 600 / 970
-const CORRIDOR_LOW_RATE = 8 / 600 // min/m (paso fluido)
-const CORRIDOR_HIGH_RATE = 10 / 600 // min/m (tráfico peatonal)
-
-// Distancia real del corredor exterior (redondeada a 10 m).
-function corridorMeters(pts: { x: number; y: number }[]): number {
-  return Math.round((metersOf(pts) * CORRIDOR_SCALE) / 10) * 10
-}
-
-// Rango de tiempo (min enteros) del corredor exterior a partir de su distancia.
-function corridorTime(meters: number): { lowMin: number; highMin: number } {
-  const lowMin = Math.max(1, Math.round(meters * CORRIDOR_LOW_RATE))
-  let highMin = Math.round(meters * CORRIDOR_HIGH_RATE)
-  if (highMin <= lowMin) highMin = lowMin + 1
-  return { lowMin, highMin }
+// Regla general de distancia: entre cada punto colocado en el mapa hay 50 m.
+// Se aplica a los recorridos exteriores (corredor Sur y Este), donde cada
+// vértice del `specialPath` es un punto del estadio: 50 m entre punto y punto.
+// El tiempo se estima luego con el ritmo global (100 m = 1 min, ver
+// route-metrics.ts).
+const METERS_PER_POINT = 50
+function pointsMeters(pts: { x: number; y: number }[]): number {
+  return Math.max(0, pts.length - 1) * METERS_PER_POINT
 }
 
 type SpecialRouteBuilder = (lang: "es" | "en") => Omit<RouteResult, "from" | "to">
@@ -976,15 +959,13 @@ function makeSouthCorridorRoute(t1: number, sub: "alta" | "baja", dir: "out" | "
       steps.push({ type: "arrive", instruction: es ? n1.es : n1.en, detail: `${gw} ${n1.gate}`, icon: "flag" })
     }
 
-    const meters = corridorMeters(path)
     return {
       steps,
       totalSteps: steps.length,
       usesExterior: true,
       gateTrace: dedupeGates(dir === "out" ? [t1, 1, 4] : [4, 1, t1]),
       specialPath: path,
-      specialMeters: meters,
-      specialTime: corridorTime(meters),
+      specialMeters: pointsMeters(path),
     }
   }
 }
@@ -1070,7 +1051,7 @@ function makeEastCorridorRoute(t1: number, east: number, dir: "out" | "in"): Spe
       usesExterior: true,
       gateTrace: dedupeGates(dir === "out" ? [t1, 1, 4, east] : [east, 4, 1, t1]),
       specialPath: path,
-      specialMeters: metersOf(path),
+      specialMeters: pointsMeters(path),
     }
   }
 }
@@ -1611,7 +1592,7 @@ function resolveRoute(from: number, to: number, lang: "es" | "en" = "es"): Resol
     steps.push(...ext(10, ["H. Vans Risn", "La Esperanza"], 1, { exitLabel: "10-11" }))
   }
 
-  // ── Aproximación al bloque Norte Occidental por la Puerta 10-11 ──────────
+  // ── Aproximación al bloque Norte Occidental por la Puerta 10-11 ──���───────
   // P10 (Tribuna Norte Occ.) y P11 (Palco Norte Occ.) comparten el ACCESO
   // exterior "Puerta 10-11". Por eso, al salir/entrar del bloque hacia el
   // exterior NO se pasa por dentro de la otra sección: desde P11 solo se camina
