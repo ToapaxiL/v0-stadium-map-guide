@@ -1,0 +1,16 @@
+<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;background:#111}</style></head><body>
+<div style="position:relative;width:1700px">
+<img src="/images/mapa-rutas.svg?v=9" style="width:1700px;display:block">
+<svg viewBox="0 0 850.394 566.929" style="position:absolute;inset:0;width:100%;height:100%"><g id="g"></g></svg>
+<script>
+// 5 puntos del usuario (orden de caminata) + conexión a Cacica/P4
+const USER=[["Puerta 1",226.996,348.188],["P. Playa Roja",409.19,363.356],["Av. J.F. Kennedy",474.215,393.346],["P. Amarilla",537.973,363.356],["Extremo der.",599.981,348.188]];
+const CONN=[["calleAbajo",786.981,383.476],["calleArriba",783.309,193.228],["p4Local",743.161,229.997]];
+const g=document.getElementById('g'),NS='http://www.w3.org/2000/svg';
+// draw path through user points
+let d="M "+USER.map(p=>p[1]+" "+p[2]).join(" L ");
+const pl=document.createElementNS(NS,'path');pl.setAttribute('d',d);pl.setAttribute('fill','none');pl.setAttribute('stroke','#22d3ee');pl.setAttribute('stroke-width',2);g.appendChild(pl);
+function dot(name,x,y,c){const el=document.createElementNS(NS,'circle');el.setAttribute('cx',x);el.setAttribute('cy',y);el.setAttribute('r',3.5);el.setAttribute('fill',c);el.setAttribute('stroke','#fff');el.setAttribute('stroke-width',0.6);g.appendChild(el);const t=document.createElementNS(NS,'text');t.setAttribute('x',x+4);t.setAttribute('y',y-2);t.setAttribute('font-size',6);t.setAttribute('font-weight','bold');t.setAttribute('fill',c);t.textContent=name;g.appendChild(t);}
+USER.forEach(p=>dot(p[0],p[1],p[2],'#e11d48'));
+CONN.forEach(p=>dot(p[0],p[1],p[2],'#f59e0b'));
+</script></div></body></html>
