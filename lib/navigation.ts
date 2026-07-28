@@ -140,7 +140,9 @@ const T = {
     enterGate:      (g: number | string) => `Entra por Puerta ${g}`,
     walkToCorridor: "Camina por el pasillo interior hasta tu sección",
     viaPlazoleta:   "Pasa por la Plazoleta",
-    passageP4P5:    "Desde General Sur Baja (Puerta 4) accede a Tribuna Sur Oriental (Puerta 5) a través del paso habilitado",
+    passageP4P5:    (isDestination: boolean) => isDestination
+      ? "Desde General Sur Baja (Puerta 4) accede a Tribuna Sur Oriental (Puerta 5) a través del paso habilitado"
+      : "Desde General Sur Baja (Puerta 4) accede a la parte Oriental a través del paso habilitado",
     passageP8P9:    "Desde Tribuna Norte Oriental (Puerta 8) accede a General Norte Oriental (Puerta 9) a través del paso habilitado",
     passageP9P8:    "Desde General Norte Oriental (Puerta 9) accede a Tribuna Norte Oriental (Puerta 8) a través del paso habilitado",
     passageP6P7:    "Cruza del Palco Sur Oriental (Puerta 6) al Palco Norte Oriental (Puerta 7) por el paso interno habilitado entre palcos",
@@ -164,7 +166,9 @@ const T = {
     enterGate:      (g: number | string) => `Enter through Gate ${g}`,
     walkToCorridor: "Walk through the indoor corridor to your section",
     viaPlazoleta:   "Pass through the Plaza",
-    passageP4P5:    "From General Sur Baja (Gate 4) you can reach Tribuna Sur Oriental (Gate 5) through the passage enabled between both sections",
+    passageP4P5:    (isDestination: boolean) => isDestination
+      ? "From General Sur Baja (Gate 4) you can reach Tribuna Sur Oriental (Gate 5) through the enabled passage"
+      : "From General Sur Baja (Gate 4) access the Eastern side through the enabled passage",
     passageP8P9:    "From Tribuna Norte Oriental (Gate 8) you can reach General Norte Oriental (Gate 9) through the enabled passage",
     passageP9P8:    "From General Norte Oriental (Gate 9) you can reach Tribuna Norte Oriental (Gate 8) through the enabled passage",
     passageP6P7:    "Cross from South East Box (Gate 6) to North East Box (Gate 7) through the internal passage enabled between the boxes",
@@ -1009,7 +1013,7 @@ function makeEastCorridorRoute(t1: number, east: number, dir: "out" | "in"): Spe
         ? "Camina de General Sur Alta a General Sur Baja"
         : "Walk from South High General to South Low General", icon: "walk" })
       // El cruce al lado oriental ocurre aquí: paso habilitado P4 → P5.
-      steps.push({ type: "internal", instruction: T[lang].passageP4P5, icon: "enter" })
+      steps.push({ type: "internal", instruction: T[lang].passageP4P5(east === 5), icon: "enter" })
       if (east > 5) {
         steps.push({ type: "internal", instruction: es
           ? (east >= 7
@@ -1032,7 +1036,8 @@ function makeEastCorridorRoute(t1: number, east: number, dir: "out" | "in"): Spe
               : "Walk to Tribuna Sur Oriental"), icon: "walk" })
       }
       // El cruce al General Sur ocurre aquí: paso habilitado P5 → P4.
-      steps.push({ type: "internal", instruction: T[lang].passageP4P5, icon: "enter" })
+      // P5 es siempre tránsito aquí (el destino es del lado occidental).
+      steps.push({ type: "internal", instruction: T[lang].passageP4P5(false), icon: "enter" })
       steps.push({ type: "internal", instruction: es
         ? "Camina de General Sur Baja a General Sur Alta"
         : "Walk from South Low General to South High General", icon: "walk" })
@@ -1119,7 +1124,10 @@ function makeSurInternalRoute(from: SurNode, to: SurNode): SpecialRouteBuilder {
       { type: "internal", instruction: walkInstruction, detail: walkDetail, icon: "walk" },
     ]
     if (crossesP4P5) {
-      steps.push({ type: "internal", instruction: T[lang].passageP4P5, icon: "enter" })
+      // isDestination = true solo cuando P5 (Tribuna Sur Oriental) es el destino
+      // final del recorrido, no un mero punto de tránsito hacia otra sección.
+      const p4p5isDestination = to === 5
+      steps.push({ type: "internal", instruction: T[lang].passageP4P5(p4p5isDestination), icon: "enter" })
     }
     steps.push({ type: "arrive", instruction: es ? nTo.es : nTo.en, detail: `${gw} ${nTo.gate}`, icon: "flag" })
     return {
