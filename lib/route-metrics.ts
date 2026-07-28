@@ -4,18 +4,14 @@
 // Fuente de verdad compartida por el encabezado "Ruta calculada".
 //
 // DISTANCIA (exacta, nunca aproximada):
-//   - Entre secciones contiguas del anillo: 100 m por tramo.
-//   - Excepciones de 50 m:
-//       · Palco Sur Occidental ↔ Plazoleta
-//       · Plazoleta ↔ Palco Norte Occidental
-//       · General Sur Alta ↔ General Sur Baja
-//       · General Norte Oriental ↔ General Norte Occidental
+//   - Entre cada punto contiguo (anillo o corredor exterior): 50 m por tramo.
 //
 // TIEMPO (rango ESTRECHO en minutos ENTEROS, realista con público):
-//   200 m: 3–4 min
-//   400 m: 6–8 min
-//   600 m: 9–12 min
-//   800 m: 12–16 min
+//   Regla base: 100 m = 1 min.
+//   200 m: 2–3 min
+//   400 m: 4–6 min
+//   600 m: 6–9 min
+//   800 m: 8–12 min
 //   Ritmo fluido → tráfico peatonal denso. Nunca se usan decimales.
 // ============================================================
 
@@ -49,19 +45,12 @@ function indicesForGate(g: number): number[] {
   return r
 }
 
-// Tramos contiguos de 50 m (todos los demás = 100 m). Pares de índices del anillo.
-// 8-9:  Palco Sur Occidental ↔ Plazoleta
-// 9-10: Plazoleta ↔ Palco Norte Occidental
-// 5-6:  General Sur Alta ↔ General Sur Baja
-// 12-0: General Norte Occidental ↔ General Norte Oriental (envuelve el anillo)
-const HALF_STEPS = new Set(["8-9", "9-10", "5-6", "0-12"])
+// Regla de distancia: entre cada punto contiguo del anillo hay 50 m.
+const METERS_PER_STEP = 50
 
 // Distancia (m) de un paso entre dos índices contiguos del anillo.
-function stepMeters(a: number, b: number): number {
-  const lo = Math.min(a, b)
-  const hi = Math.max(a, b)
-  if (HALF_STEPS.has(`${lo}-${hi}`)) return 50
-  return 100
+function stepMeters(_a: number, _b: number): number {
+  return METERS_PER_STEP
 }
 
 // Distancia en pasos del anillo (arco más corto) entre dos índices.
@@ -126,13 +115,13 @@ export function routeDistanceMeters(result: RouteResult): number {
   return m
 }
 
-// Regla base: 100 m = 1,5 min (ritmo fluido con público) → 0.015 min/m.
+// Regla base: 100 m = 1 min (ritmo fluido con público) → 0.01 min/m.
 // Se mantiene un rango: el límite alto añade margen por tráfico peatonal denso.
-//   - Bajo:  1,5 min por 100 m  (0.015 min/m)  → regla base
-//   - Alto:  2,0 min por 100 m  (0.020 min/m)  → tráfico peatonal denso
-// Ejemplos: 100 m ≈ 2 min · 200 m ≈ 3–4 min · 600 m ≈ 9–12 min · 1000 m ≈ 15–20 min
-const LOW_RATE = 0.015
-const HIGH_RATE = 0.02
+//   - Bajo:  1,0 min por 100 m  (0.010 min/m)  → regla base
+//   - Alto:  1,5 min por 100 m  (0.015 min/m)  → tráfico peatonal denso
+// Ejemplos: 100 m ≈ 1–2 min · 200 m ≈ 2–3 min · 600 m ≈ 6–9 min · 1000 m ≈ 10–15 min
+const LOW_RATE = 0.01
+const HIGH_RATE = 0.015
 
 export interface RouteTime {
   /** Minutos, ritmo fluido con público. */

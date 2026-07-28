@@ -364,11 +364,11 @@ function metersOf(pts: { x: number; y: number }[]): number {
   return Math.round((polyLength(pts) * METERS_PER_SVG_UNIT) / 10) * 10
 }
 
-// Regla general de distancia: entre cada punto colocado en el mapa hay 100 m.
+// Regla general de distancia: entre cada punto colocado en el mapa hay 50 m.
 // Se aplica a los recorridos exteriores (corredor Sur y Este), donde cada
 // vértice del `specialPath` es un punto del estadio. El tiempo se estima luego
-// con el ritmo global (100 m = 1,5 min, ver route-metrics.ts).
-const METERS_PER_POINT = 100
+// con el ritmo global (100 m = 1 min, ver route-metrics.ts).
+const METERS_PER_POINT = 50
 function pointsMeters(pts: { x: number; y: number }[]): number {
   return Math.max(0, pts.length - 1) * METERS_PER_POINT
 }
