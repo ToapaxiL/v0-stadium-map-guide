@@ -326,6 +326,14 @@ const PT = {
   plazoletaP1:   { x: 474.215, y: 390.346 }, // Plazoleta (Puerta 1) — destino real
   kennedyCorner: { x: 795.000, y: 486.546 }, // esquina Av. John F. Kennedy ↔ Calle Cacica Quilago
 
+  // ── Corredor exterior EXACTO (5 anclajes del SVG, ellipses cls-34) ──
+  // La ruta especial debe pasar literalmente por estos 5 puntos, en este orden.
+  extPuerta1:    { x: 226.996, y: 348.188 }, // Puerta 1
+  extPlayaRoja:  { x: 409.190, y: 363.356 }, // P. Playa Roja
+  extKennedy:    { x: 474.215, y: 393.346 }, // Av. John F. Kennedy
+  extAmarilla:   { x: 537.973, y: 363.356 }, // P. Amarilla
+  extDerecho:    { x: 599.981, y: 348.188 }, // Extremo derecho
+
   // Asientos del bloque Sur/Norte Occidental (para las rutas del bucle oeste).
   p11Seat:       { x: 409.190, y: 363.356 }, // Palco Norte Occidental (P11)
   p2Seat:        { x: 537.973, y: 363.356 }, // Palco Sur Occidental (P2)
@@ -875,7 +883,10 @@ function southTail1(gate: number): Pt[] {
 // A la General Sur SIEMPRE se ingresa por Alta. A la Baja NUNCA se entra
 // directo: se llega subiendo desde Alta (p4AltaSeat → p4BajaSeat).
 const P4_ENTER = [
-  PT.plazoletaP1, PT.p1TurnUp, PT.laEspP1, PT.kennedyCorner,
+  // Corredor exterior EXACTO por los 5 anclajes del SVG (Puerta 1 → Playa Roja
+  // → Av. John F. Kennedy → P. Amarilla → Extremo derecho)…
+  PT.extPuerta1, PT.extPlayaRoja, PT.extKennedy, PT.extAmarilla, PT.extDerecho,
+  // …y de ahí sube por la Calle Cacica Quilago hasta la Puerta 4 LOCAL.
   PT.calleAbajo, PT.calleArriba, PT.p4Local, PT.p4Junction, PT.p4AltaSeat,
 ]
 function p4Head(sub: "alta" | "baja"): Pt[] {
@@ -1434,7 +1445,7 @@ const SPECIAL_ROUTES: Record<string, SpecialRouteBuilder> = {
   "general-norte-occidental|tribuna-sur-occidental": makeWestLoopRoute(9, 3, "n2s"),
   "tribuna-sur-occidental|general-norte-occidental": makeWestLoopRoute(9, 3, "s2n"),
 
-  // ── Sur Occidental {Plazoleta(P1), P2, P3} ↔ General Norte Oriental (P9 Ori) ──
+  // ── Sur Occidental {Plazoleta(P1), P2, P3} ↔ General Norte Oriental (P9 Ori) ─��
   //    SOLO General Norte Oriental va por el OESTE (La Esperanza → H. Vans Risn),
   //    entrando por la Puerta 9W y subiendo por General Norte.
   //    Palco/Tribuna Norte Oriental (P7/P8) NO: mantienen el corredor ESTE
