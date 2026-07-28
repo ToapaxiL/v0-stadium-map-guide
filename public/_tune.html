@@ -1,0 +1,27 @@
+<!doctype html><html><head><style>html,body{margin:0}</style></head><body>
+<div style="position:relative;width:1500px">
+<img src="/images/mapa-rutas.svg" style="width:1500px;display:block">
+<svg viewBox="0 0 850.394 566.929" style="position:absolute;inset:0;width:100%;height:100%">
+<polyline id="rt" fill="none" stroke="#00e5ff" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>
+<g id="n"></g></svg>
+<script>
+// Candidate SE exterior corridor (B/Palco Sur -> Kennedy -> diagonal SE -> A/General Sur Alta P4)
+const R=[
+ [531.82,418.30], // p1TurnUp / Palco Sur turn
+ [531.82,456.50], // down to Kennedy
+ [645.00,456.50], // Kennedy right (before P.Playa Roja)
+ [645.00,466.50],[669.00,466.50],[669.00,456.50], // P.Playa Roja notch
+ [740.00,456.50], // Kennedy right toward SE corner
+ [772.00,430.00], // start diagonal hugging rounded corner
+ [786.00,383.00], // Cacica lower
+ [786.00,250.00], // Cacica up
+ [783.31,193.23], // calleArriba (cls-34)
+ [743.16,229.997],// p4Local (cls-34)
+ [742.09,289.996],// p4Junction (cls-34)
+ [670.29,289.996] // A General Sur Alta (cls-34)
+];
+const rt=document.getElementById('rt');
+rt.setAttribute('points',R.map(p=>p.join(',')).join(' '));
+const g=document.getElementById('n'),NS='http://www.w3.org/2000/svg';
+R.forEach(p=>{const c=document.createElementNS(NS,'circle');c.setAttribute('cx',p[0]);c.setAttribute('cy',p[1]);c.setAttribute('r',3);c.setAttribute('fill','#ff0000');g.appendChild(c);});
+</script></div></body></html>
