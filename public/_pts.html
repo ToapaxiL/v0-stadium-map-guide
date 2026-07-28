@@ -1,0 +1,8 @@
+<!doctype html><meta charset=utf-8><style>body{margin:0}#w{position:relative;width:1700px}#w img{width:100%;display:block}.d{position:absolute;width:14px;height:14px;margin:-7px 0 0 -7px;background:#e11;border:2px solid #fff;border-radius:50%}.l{position:absolute;transform:translate(8px,-8px);font:bold 13px sans-serif;color:#e11;background:#fff;padding:1px 3px;border-radius:3px}</style>
+<div id=w><img src="/images/mapa-rutas.svg">
+<script>
+const VB=850.394, W=1700, s=W/VB;
+const pts=[["extPuerta1",226.996,348.188],["extPlayaRoja",409.190,363.356],["extKennedy",474.215,393.346],["extAmarilla",537.973,363.356],["extDerecho",599.981,348.188],["plazoletaP1",474.215,390.346],["calleAbajo",null,null]];
+const w=document.getElementById('w');
+for(const[n,x,y] of pts){if(x==null)continue;const d=document.createElement('div');d.className='d';d.style.left=(x*s)+'px';d.style.top=(y*s)+'px';w.appendChild(d);const l=document.createElement('div');l.className='l';l.style.left=(x*s)+'px';l.style.top=(y*s)+'px';l.textContent=n;w.appendChild(l);}
+</script></div>
