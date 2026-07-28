@@ -61,7 +61,12 @@ const CENTER = {
 
 // Devuelve el centro de la etiqueta de puerta, desplazado hacia el centro del
 // estadio respecto al marcador, para evitar solaparse con los rótulos externos.
-function gateBadgeCenter(p: { x: number; y: number }): { x: number; y: number } {
+function gateBadgeCenter(p: { x: number; y: number; gate?: number }): { x: number; y: number } {
+  // Puerta 1 (Plazoleta): el desplazamiento hacia el centro cae justo encima
+  // del marcador A/B. La colocamos a la IZQUIERDA para que no lo tape.
+  if (p.gate === 1) {
+    return { x: p.x - 24, y: p.y }
+  }
   const dx = CENTER.x - p.x
   const dy = CENTER.y - p.y
   const d = Math.hypot(dx, dy) || 1
