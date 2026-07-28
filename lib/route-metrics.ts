@@ -104,10 +104,29 @@ function expandAlongPerimeter(indices: number[]): number[] {
   return out
 }
 
-/** Distancia EXACTA de la ruta en metros. */
+// Cuenta los puntos ÚNICOS consecutivos de una polilínea (ignora vértices
+// repetidos), para aplicar la regla "50 m por cada punto recorrido".
+function countPathPoints(pts: { x: number; y: number }[]): number {
+  let n = 0
+  for (let i = 0; i < pts.length; i++) {
+    const p = pts[i]
+    const prev = pts[i - 1]
+    if (!prev || prev.x !== p.x || prev.y !== p.y) n++
+  }
+  return n
+}
+
+/**
+ * Distancia EXACTA de la ruta en metros. Regla ÚNICA, sin excepciones:
+ * 50 m por cada punto recorrido. Para rutas especiales se cuentan los puntos
+ * del `specialPath`; para las del anillo, los índices del perímetro.
+ */
 export function routeDistanceMeters(result: RouteResult): number {
-  // Rutas especiales (recorridos exteriores) traen su propia distancia exacta.
-  if (typeof result.specialMeters === "number") return result.specialMeters
+  // Rutas especiales (recorridos exteriores/internos con polilínea propia):
+  // cada punto de la polilínea es un "punto recorrido" → 50 m entre cada uno.
+  if (result.specialPath && result.specialPath.length > 0) {
+    return Math.max(0, countPathPoints(result.specialPath) - 1) * METERS_PER_STEP
+  }
   const iA = SECTION_INDEX[result.from] ?? 0
   const iB = SECTION_INDEX[result.to] ?? 0
   const idx = expandAlongPerimeter(traceToIndices(result.gateTrace ?? [], iA, iB))
