@@ -288,14 +288,14 @@ const PT = {
   p3:            { x: 599.981, y: 348.188 }, // Tribuna Sur Occidental (P3)
   p23Exterior:   { x: 666.981, y: 383.477 }, // salida exterior junto a Puerta 2-3
   calleAbajo:    { x: 786.981, y: 383.476 }, // Calle Cacica Quilago, esquina inferior
-  calleArriba:   { x: 786.709, y: 193.228 }, // Calle Cacica Quilago, esquina superior
-  p4Local:       { x: 746.709, y: 229.997 }, // ingreso Puerta 4 LOCAL
-  p4Junction:    { x: 747.12,  y: 289.997 }, // giro interior a la altura de General Sur Alta
+  calleArriba:   { x: 783.309, y: 193.228 }, // Calle Cacica Quilago, esquina superior
+  p4Local:       { x: 743.161, y: 229.997 }, // ingreso Puerta 4 LOCAL
+  p4Junction:    { x: 742.089, y: 289.997 }, // giro interior a la altura de General Sur Alta
   p4AltaSeat:    { x: 670.291, y: 289.996 }, // General Sur Alta (P4)
   p4BajaSeat:    { x: 670.292, y: 229.997 }, // General Sur Baja (P4) — se llega SOLO desde Alta
 
   // ── Lado Sur Oriental (continuación interna desde General Sur Baja) ─�����
-  p5Seat:        { x: 599.981, y: 170.31  }, // Tribuna Sur Oriental (P5)
+  p5Seat:        { x: 599.981, y: 164.310 }, // Tribuna Sur Oriental (P5)
   p6Seat:        { x: 537.972, y: 153.438 }, // Palco Sur Oriental (P6)
 
   // ── Lado Norte Oriental (acceso por el OESTE, calle H. Vans Risn) ���─
@@ -303,7 +303,7 @@ const PT = {
   // a General Norte Oriental (P9 Ori) se entra por 9W y se sube
   // pasando por General Norte Occidental.
   p7Seat:        { x: 409.189, y: 153.438 }, // Palco Norte Oriental (P7)
-  p8Seat:        { x: 345.983, y: 170.188 }, // Tribuna Norte Oriental (P8)
+  p8Seat:        { x: 345.983, y: 164.188 }, // Tribuna Norte Oriental (P8)
   p9OriSeat:     { x: 275.996, y: 224.819 }, // General Norte Oriental (P9 Ori)
   p78Exterior:   { x: 226.996, y: 170.188 }, // salida Puerta 7-8 (a la calle H. Vans Risn)
 
@@ -321,7 +321,7 @@ const PT = {
   laEspNWCorner: { x: 212.253, y: 467.546 }, // esquina inferior (inicio La Esperanza)
   laEspP1:       { x: 531.823, y: 486.546 }, // La Esperanza a la altura de la Puerta 1
   p1TurnUp:      { x: 531.822, y: 418.299 }, // giro hacia arriba en la Puerta 1
-  plazoletaP1:   { x: 474.215, y: 388.346 }, // Plazoleta (Puerta 1) — destino real
+  plazoletaP1:   { x: 474.215, y: 390.346 }, // Plazoleta (Puerta 1) — destino real
 
   // Asientos del bloque Sur/Norte Occidental (para las rutas del bucle oeste).
   p11Seat:       { x: 409.190, y: 363.356 }, // Palco Norte Occidental (P11)
