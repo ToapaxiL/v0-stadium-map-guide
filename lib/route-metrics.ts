@@ -126,11 +126,11 @@ export function routeDistanceMeters(result: RouteResult): number {
   return m
 }
 
-// Ritmos realistas para un estadio con público (concourse con gente en
-// movimiento, sin llegar a aglomeración extrema). Rango estrecho:
-//   - Bajo:  3 min por 200 m  (0.015 min/m)  → paso fluido entre gente
-//   - Alto:  4 min por 200 m  (0.020 min/m)  → tráfico peatonal denso
-// Ejemplos: 200 m ≈ 3–4 min · 400 m ≈ 6–8 min · 600 m ≈ 9–12 min · 800 m ≈ 12–16 min
+// Regla base: 100 m = 1,5 min (ritmo fluido con público) → 0.015 min/m.
+// Se mantiene un rango: el límite alto añade margen por tráfico peatonal denso.
+//   - Bajo:  1,5 min por 100 m  (0.015 min/m)  → regla base
+//   - Alto:  2,0 min por 100 m  (0.020 min/m)  → tráfico peatonal denso
+// Ejemplos: 100 m ≈ 2 min · 200 m ≈ 3–4 min · 600 m ≈ 9–12 min · 1000 m ≈ 15–20 min
 const LOW_RATE = 0.015
 const HIGH_RATE = 0.02
 
@@ -150,11 +150,10 @@ export function routeTimeRange(meters: number): RouteTime {
 }
 
 /**
- * Rango de tiempo de una ruta. Respeta `specialTime` (medición en sitio) cuando
- * existe; si no, lo estima desde la distancia con el ritmo general.
+ * Rango de tiempo de una ruta, estimado desde su distancia con la regla global
+ * (100 m = 1,5 min, con margen alto por tráfico peatonal).
  */
 export function routeTimeFor(result: RouteResult): RouteTime {
-  if (result.specialTime) return result.specialTime
   return routeTimeRange(routeDistanceMeters(result))
 }
 
