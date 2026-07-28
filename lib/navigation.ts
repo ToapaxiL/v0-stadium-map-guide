@@ -287,17 +287,20 @@ function walkInternal(
 // Nodos del nuevo SVG usados por las rutas especiales (coords viewBox).
 const PT = {
   p3:            { x: 599.981, y: 348.188 }, // Tribuna Sur Occidental (P3)
-  // ── Vereda exterior sur: Puerta 1 → Av. John F. Kennedy → esquina Cacica Quilago ──
-  // Sigue el contorno real de la acera (no el borde inferior del lienzo),
-  // escalonando alrededor de P. Playa Roja y P. Amarilla.
-  kennedyP1:     { x: 531.822, y: 456.500 }, // bajada desde la Puerta 1 a la vereda de Kennedy
-  playaRojaL:    { x: 645.000, y: 456.500 }, // inicio del quiebre en P. Playa Roja
-  playaRojaLo:   { x: 645.000, y: 466.500 }, // baja al escalón de P. Playa Roja
-  playaRojaHi:   { x: 669.000, y: 466.500 }, // recorre el escalón de P. Playa Roja
-  amarillaUp:    { x: 669.000, y: 456.500 }, // vuelve a subir tras P. Playa Roja
-  kennedyCorner: { x: 783.309, y: 456.500 }, // esquina Av. John F. Kennedy ↔ Calle Cacica Quilago
-  calleAbajo:    { x: 783.309, y: 383.476 }, // Calle Cacica Quilago, esquina inferior
-  calleArriba:   { x: 783.309, y: 193.228 }, // Calle Cacica Quilago, esquina superior (punto SVG)
+  // ── Vereda exterior sur/este: Puerta 1 → Av. John F. Kennedy → esquina Cacica Quilago ──
+  // Coordenadas tomadas del contorno REAL de la fachada del SVG (muestreo de píxeles).
+  // La vereda de Kennedy corre a y≈462, escalona en P. Playa Roja / P. Amarilla (y≈447),
+  // y sube en DIAGONAL por la esquina redondeada (Puerta 2-3) hasta la Calle Cacica Quilago.
+  kennedyP1:     { x: 531.822, y: 462.000 }, // esquina Puerta 1 sobre Av. John F. Kennedy (nodo SVG)
+  playaRojaA:    { x: 604.000, y: 462.000 }, // recorrido recto por Kennedy hasta P. Playa Roja
+  playaRojaB:    { x: 610.000, y: 447.000 }, // sube al escalón de P. Playa Roja
+  amarillaC:     { x: 662.000, y: 447.000 }, // cruza la muesca de P. Playa Roja / P. Amarilla
+  amarillaD:     { x: 678.000, y: 462.000 }, // baja de nuevo tras P. Amarilla
+  kennedyCorner: { x: 705.000, y: 462.000 }, // fin del tramo horizontal de Kennedy
+  seCorner1:     { x: 758.000, y: 438.000 }, // diagonal de la esquina redondeada (Puerta 2-3)
+  seCorner2:     { x: 788.000, y: 398.000 }, // llega al muro este / Calle Cacica Quilago
+  calleAbajo:    { x: 792.000, y: 345.000 }, // Calle Cacica Quilago, saliente de Puerta 2-3
+  calleArriba:   { x: 786.000, y: 262.000 }, // Calle Cacica Quilago a la altura del ingreso P4
   p4Local:       { x: 743.161, y: 229.997 }, // ingreso Puerta 4 LOCAL (punto SVG)
   p4Junction:    { x: 742.089, y: 289.996 }, // giro interior a la altura de General Sur Alta (punto SVG)
   p4AltaSeat:    { x: 670.291, y: 289.996 }, // General Sur Alta (P4)
@@ -879,8 +882,9 @@ function southTail1(gate: number): Pt[] {
 // NUNCA se entra directo: se llega subiendo desde Alta (p4AltaSeat → p4BajaSeat).
 const P4_ENTER = [
   PT.p1TurnUp, PT.kennedyP1,
-  PT.playaRojaL, PT.playaRojaLo, PT.playaRojaHi, PT.amarillaUp,
-  PT.kennedyCorner, PT.calleAbajo, PT.calleArriba, PT.p4Local, PT.p4Junction, PT.p4AltaSeat,
+  PT.playaRojaA, PT.playaRojaB, PT.amarillaC, PT.amarillaD,
+  PT.kennedyCorner, PT.seCorner1, PT.seCorner2, PT.calleAbajo, PT.calleArriba,
+  PT.p4Local, PT.p4Junction, PT.p4AltaSeat,
 ]
 function p4Head(sub: "alta" | "baja"): Pt[] {
   return sub === "alta" ? [...P4_ENTER] : [...P4_ENTER, PT.p4BajaSeat]

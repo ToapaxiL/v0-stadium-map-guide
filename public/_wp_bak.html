@@ -1,9 +1,0 @@
-<!doctype html><html><head><style>html,body{margin:0}</style></head><body>
-<div style="position:relative;width:1600px">
-<img src="/images/mapa-rutas.svg" style="width:1600px;display:block">
-<svg viewBox="0 0 850.394 566.929" style="position:absolute;inset:0;width:100%;height:100%"><g id="g"></g></svg>
-<script>
-const P=[[276.00,294.19],[276.00,224.82],[345.98,164.19],[599.98,164.31],[599.98,348.19],[537.97,363.36],[409.19,363.36],[670.29,290.00],[670.29,230.00],[474.21,390.35],[537.97,153.44],[409.19,153.44],[345.98,348.19],[783.31,193.23],[743.16,230.00],[742.09,290.00],[276.00,348.19],[227.00,348.19],[227.00,371.05],[276.00,371.05],[227.00,397.19],[212.25,397.19],[212.25,467.55],[531.82,418.30]];
-const g=document.getElementById('g'),NS='http://www.w3.org/2000/svg';
-P.forEach((p,i)=>{const c=document.createElementNS(NS,'circle');c.setAttribute('cx',p[0]);c.setAttribute('cy',p[1]);c.setAttribute('r',4);c.setAttribute('fill','#ff00ff');c.setAttribute('stroke','#fff');c.setAttribute('stroke-width',.7);g.appendChild(c);const t=document.createElementNS(NS,'text');t.setAttribute('x',p[0]+4);t.setAttribute('y',p[1]-2);t.setAttribute('font-size',8);t.setAttribute('font-weight','bold');t.setAttribute('fill','#0000cc');t.textContent=i;g.appendChild(t);});
-</script></div></body></html>
