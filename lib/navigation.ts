@@ -178,18 +178,6 @@ const T = {
   },
 }
 
-// Mensaje del paso habilitado P4 (General Sur Baja) ↔ P5 (Tribuna Sur Oriental).
-// Regla general de las indicaciones: solo se nombra "Tribuna Sur Oriental
-// (Puerta 5)" cuando P5 es el DESTINO final de la ruta. Si P5 es únicamente un
-// punto de tránsito hacia otra sección oriental (P6, P7, P8…) o hacia el otro
-// lado, se generaliza a "la parte Oriental", sin especificar la tribuna.
-function passageP4P5Text(lang: "es" | "en", p5IsDestination: boolean): string {
-  if (p5IsDestination) return T[lang].passageP4P5
-  return lang === "es"
-    ? "Desde General Sur Baja (Puerta 4) accede a la parte Oriental a través del paso habilitado"
-    : "From General Sur Baja (Gate 4) you can reach the East side through the enabled passage"
-}
-
 // ============================================================
 // Lógica de pasos internos
 // ============================================================
@@ -1021,8 +1009,7 @@ function makeEastCorridorRoute(t1: number, east: number, dir: "out" | "in"): Spe
         ? "Camina de General Sur Alta a General Sur Baja"
         : "Walk from South High General to South Low General", icon: "walk" })
       // El cruce al lado oriental ocurre aquí: paso habilitado P4 → P5.
-      // Solo se nombra "Tribuna Sur Oriental (P5)" si es el destino (east === 5).
-      steps.push({ type: "internal", instruction: passageP4P5Text(lang, east === 5), icon: "enter" })
+      steps.push({ type: "internal", instruction: T[lang].passageP4P5, icon: "enter" })
       if (east > 5) {
         steps.push({ type: "internal", instruction: es
           ? (east >= 7
@@ -1045,8 +1032,7 @@ function makeEastCorridorRoute(t1: number, east: number, dir: "out" | "in"): Spe
               : "Walk to Tribuna Sur Oriental"), icon: "walk" })
       }
       // El cruce al General Sur ocurre aquí: paso habilitado P5 → P4.
-      // El destino es el lado sur/occidental, no P5 → mensaje genérico.
-      steps.push({ type: "internal", instruction: passageP4P5Text(lang, false), icon: "enter" })
+      steps.push({ type: "internal", instruction: T[lang].passageP4P5, icon: "enter" })
       steps.push({ type: "internal", instruction: es
         ? "Camina de General Sur Baja a General Sur Alta"
         : "Walk from South Low General to South High General", icon: "walk" })
@@ -1133,8 +1119,7 @@ function makeSurInternalRoute(from: SurNode, to: SurNode): SpecialRouteBuilder {
       { type: "internal", instruction: walkInstruction, detail: walkDetail, icon: "walk" },
     ]
     if (crossesP4P5) {
-      // Solo se nombra la Tribuna Sur Oriental (P5) cuando es el destino.
-      steps.push({ type: "internal", instruction: passageP4P5Text(lang, to === 5), icon: "enter" })
+      steps.push({ type: "internal", instruction: T[lang].passageP4P5, icon: "enter" })
     }
     steps.push({ type: "arrive", instruction: es ? nTo.es : nTo.en, detail: `${gw} ${nTo.gate}`, icon: "flag" })
     return {
@@ -1631,17 +1616,14 @@ function resolveRoute(from: number, to: number, lang: "es" | "en" = "es"): Resol
   // Ya NO se sale al exterior entre estas dos secciones: existe un paso interno
   // habilitado. Cualquier ruta que transite entre General Sur y el lado oriental
   // lo utiliza y SIEMPRE lo menciona en las indicaciones.
-  // p5IsDestination indica si la Tribuna Sur Oriental (P5) es el destino final.
-  // Si solo es tránsito hacia otra sección, el mensaje se generaliza.
-  const p4ToP5 = (p5IsDestination: boolean) => {
+  const p4ToP5 = () => {
     steps.push({ type: "internal", instruction: lang === "es" ? "Camina hasta Tribuna Sur Oriental" : "Walk to Tribuna Sur Oriental", icon: "walk" })
-    steps.push({ type: "internal", instruction: passageP4P5Text(lang, p5IsDestination), icon: "enter" })
+    steps.push({ type: "internal", instruction: T[lang].passageP4P5, icon: "enter" })
     pushTrace(5)
   }
   const p5ToP4 = () => {
     steps.push({ type: "internal", instruction: lang === "es" ? "Camina hasta General Sur Baja" : "Walk to General Sur Baja", icon: "walk" })
-    // El destino es General Sur (P4), no P5 → mensaje genérico.
-    steps.push({ type: "internal", instruction: passageP4P5Text(lang, false), icon: "enter" })
+    steps.push({ type: "internal", instruction: T[lang].passageP4P5, icon: "enter" })
     pushTrace(4)
   }
 
@@ -1733,9 +1715,8 @@ function resolveRoute(from: number, to: number, lang: "es" | "en" = "es"): Resol
   }
   if (from === 4 && inTramo2(to)) {
     // General Sur Baja → lado oriental por el paso interno habilitado P4 ↔ P5.
-    // Solo se nombra la Tribuna Sur Oriental (P5) cuando ES el destino (to === 5);
-    // si es solo tránsito hacia otra sección oriental, el mensaje se generaliza.
-    p4ToP5(to === 5)
+    // P5 es solo tránsito: se continúa por el lado oriental sin entrar a ella.
+    p4ToP5()
     wi(5, to, TRAMO_2, { startTransit: true })
     return { steps, trace }
   }
@@ -1752,8 +1733,7 @@ function resolveRoute(from: number, to: number, lang: "es" | "en" = "es"): Resol
     return { steps, trace }
   }
   if (from === 4 && inTramo3(to)) {
-    // Destino en el Norte Occidental: P5 es solo tránsito → mensaje genérico.
-    p4ToP5(false)
+    p4ToP5()
     tramo2ToWest(5, true)
     westApproachIn(to)                  // camina hasta la sección (P11) sin entrar a P10
     return { steps, trace }
