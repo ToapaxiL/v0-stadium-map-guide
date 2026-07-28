@@ -149,6 +149,15 @@ export function routeTimeRange(meters: number): RouteTime {
   return { lowMin, highMin }
 }
 
+/**
+ * Rango de tiempo de una ruta. Respeta `specialTime` (medición en sitio) cuando
+ * existe; si no, lo estima desde la distancia con el ritmo general.
+ */
+export function routeTimeFor(result: RouteResult): RouteTime {
+  if (result.specialTime) return result.specialTime
+  return routeTimeRange(routeDistanceMeters(result))
+}
+
 /** Formatea minutos: siempre entero, sin decimales. */
 export function formatMinutes(min: number): string {
   return String(Math.round(min))

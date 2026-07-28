@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { calculateRoute, getSectionName, ALL_SECTIONS, type RouteResult, type RouteStep } from "@/lib/navigation"
-import { routeDistanceMeters, routeTimeRange, formatMinutes } from "@/lib/route-metrics"
+import { routeDistanceMeters, routeTimeFor, formatMinutes } from "@/lib/route-metrics"
 import { Navigation, ArrowUpDown, ArrowUp, MapPin, Footprints, DoorOpen, DoorClosed, Flag, TriangleAlert, ChevronDown, Clock } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { StadiumRouteMap } from "./stadium-route-map"
@@ -237,7 +237,7 @@ export function NavigationGuide({ onRouteActiveChange }: { onRouteActiveChange?:
           {/* Header resultado */}
           {(() => {
             const meters = routeDistanceMeters(result)
-            const { lowMin, highMin } = routeTimeRange(meters)
+            const { lowMin, highMin } = routeTimeFor(result)
             const timeLabel = `${formatMinutes(lowMin)}–${formatMinutes(highMin)} min`
             const distLabel = `${meters} m`
             return (
