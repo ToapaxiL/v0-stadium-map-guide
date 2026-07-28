@@ -1,9 +1,0 @@
-<!doctype html><html><head><style>html,body{margin:0}</style></head><body>
-<div style="position:relative;width:1700px">
-<img src="/images/mapa-rutas.svg" style="width:1700px;display:block">
-<svg viewBox="0 0 850.394 566.929" style="position:absolute;inset:0;width:100%;height:100%"><g id="g"></g></svg>
-<script>
-const A=[["plazoletaP1",474.215,390.346],["p1TurnUp",531.822,418.299],["laEspP1",531.823,486.546],["calleAbajo",786.981,383.476],["calleArriba",783.309,193.228],["p4Local",743.161,229.997],["p4Junction",742.089,289.997],["p4AltaSeat",670.291,289.996],["p3",599.981,348.188],["p2Seat",537.973,363.356]];
-const g=document.getElementById('g'),NS='http://www.w3.org/2000/svg';
-A.forEach((p,i)=>{const c=document.createElementNS(NS,'circle');c.setAttribute('cx',p[1]);c.setAttribute('cy',p[2]);c.setAttribute('r',3.5);c.setAttribute('fill','#16a34a');c.setAttribute('stroke','#fff');c.setAttribute('stroke-width',0.6);g.appendChild(c);const t=document.createElementNS(NS,'text');t.setAttribute('x',p[1]+4);t.setAttribute('y',p[2]-2);t.setAttribute('font-size',7);t.setAttribute('font-weight','bold');t.setAttribute('fill','#065f46');t.textContent=p[0];g.appendChild(t);});
-</script></div></body></html>
