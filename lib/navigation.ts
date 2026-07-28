@@ -287,7 +287,15 @@ function walkInternal(
 // Nodos del nuevo SVG usados por las rutas especiales (coords viewBox).
 const PT = {
   p3:            { x: 599.981, y: 348.188 }, // Tribuna Sur Occidental (P3)
-  kennedyCorner: { x: 783.309, y: 486.546 }, // esquina Av. John F. Kennedy ↔ Calle Cacica Quilago
+  // ── Vereda exterior sur: Puerta 1 → Av. John F. Kennedy → esquina Cacica Quilago ──
+  // Sigue el contorno real de la acera (no el borde inferior del lienzo),
+  // escalonando alrededor de P. Playa Roja y P. Amarilla.
+  kennedyP1:     { x: 531.822, y: 456.500 }, // bajada desde la Puerta 1 a la vereda de Kennedy
+  playaRojaL:    { x: 645.000, y: 456.500 }, // inicio del quiebre en P. Playa Roja
+  playaRojaLo:   { x: 645.000, y: 466.500 }, // baja al escalón de P. Playa Roja
+  playaRojaHi:   { x: 669.000, y: 466.500 }, // recorre el escalón de P. Playa Roja
+  amarillaUp:    { x: 669.000, y: 456.500 }, // vuelve a subir tras P. Playa Roja
+  kennedyCorner: { x: 783.309, y: 456.500 }, // esquina Av. John F. Kennedy ↔ Calle Cacica Quilago
   calleAbajo:    { x: 783.309, y: 383.476 }, // Calle Cacica Quilago, esquina inferior
   calleArriba:   { x: 783.309, y: 193.228 }, // Calle Cacica Quilago, esquina superior (punto SVG)
   p4Local:       { x: 743.161, y: 229.997 }, // ingreso Puerta 4 LOCAL (punto SVG)
@@ -869,7 +877,11 @@ function southTail1(gate: number): Pt[] {
 // Quilago → Puerta 4 LOCAL → General Sur Alta. (El antiguo paso por la Puerta
 // 2-3 quedó obsoleto.) A la General Sur SIEMPRE se ingresa por Alta; a la Baja
 // NUNCA se entra directo: se llega subiendo desde Alta (p4AltaSeat → p4BajaSeat).
-const P4_ENTER = [PT.p1TurnUp, PT.laEspP1, PT.kennedyCorner, PT.calleAbajo, PT.calleArriba, PT.p4Local, PT.p4Junction, PT.p4AltaSeat]
+const P4_ENTER = [
+  PT.p1TurnUp, PT.kennedyP1,
+  PT.playaRojaL, PT.playaRojaLo, PT.playaRojaHi, PT.amarillaUp,
+  PT.kennedyCorner, PT.calleAbajo, PT.calleArriba, PT.p4Local, PT.p4Junction, PT.p4AltaSeat,
+]
 function p4Head(sub: "alta" | "baja"): Pt[] {
   return sub === "alta" ? [...P4_ENTER] : [...P4_ENTER, PT.p4BajaSeat]
 }
