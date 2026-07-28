@@ -1,0 +1,24 @@
+<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0}#w{position:relative;width:1700px}#w img{width:100%;display:block}svg{position:absolute;inset:0;width:100%;height:100%}</style></head>
+<body><div id="w">
+<img src="/images/mapa-rutas.svg">
+<svg viewBox="0 0 850.394 566.929" preserveAspectRatio="xMidYMid meet">
+<g id="pts"></g>
+</svg>
+<script>
+const P={
+ plazoletaP1:[474.215,390.346,'#e11'],
+ p1TurnUp:[531.822,418.299,'#e11'],
+ laEspP1:[531.823,486.546,'#e11'],
+ calleAbajo:[786.981,383.476,'#06c'],
+ calleArriba:[783.309,193.228,'#06c'],
+ p4Local:[743.161,229.997,'#06c'],
+ p3:[599.981,348.188,'#093'],
+ p2Seat:[537.973,363.356,'#093'],
+ p11Seat:[409.190,363.356,'#093'],
+};
+const g=document.getElementById('pts');const NS='http://www.w3.org/2000/svg';
+for(const k in P){const[x,y,c]=P[k];
+ const ci=document.createElementNS(NS,'circle');ci.setAttribute('cx',x);ci.setAttribute('cy',y);ci.setAttribute('r',3.5);ci.setAttribute('fill',c);ci.setAttribute('stroke','#fff');ci.setAttribute('stroke-width',0.8);g.appendChild(ci);
+ const t=document.createElementNS(NS,'text');t.setAttribute('x',x+4);t.setAttribute('y',y-2);t.setAttribute('fill',c);t.setAttribute('font-size',6);t.setAttribute('font-weight','700');t.setAttribute('stroke','#fff');t.setAttribute('stroke-width',0.3);t.textContent=k;g.appendChild(t);}
+</script>
+</div></body></html>
