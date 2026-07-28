@@ -40,6 +40,12 @@ export interface RouteResult {
   specialPath?: { x: number; y: number }[]
   /** Distancia EXACTA en metros para rutas especiales (sobrescribe el cálculo por anillo). */
   specialMeters?: number
+  /**
+   * Rango de tiempo (min) medido en sitio para rutas especiales cuyo ritmo NO
+   * corresponde al cálculo global por distancia (p. ej. el corredor exterior).
+   * Si está presente, el encabezado lo usa tal cual.
+   */
+  specialTime?: { lowMin: number; highMin: number }
 }
 
 const SECTION_GATES: Record<string, number> = {
@@ -362,6 +368,27 @@ const METERS_PER_SVG_UNIT = 100 / 91
 
 function metersOf(pts: { x: number; y: number }[]): number {
   return Math.round((polyLength(pts) * METERS_PER_SVG_UNIT) / 10) * 10
+}
+
+// El corredor exterior (Plazoleta → Puerta 1 → Av. J.F. Kennedy → Calle Cacica
+// Quilago) está DIBUJADO más largo que la caminata real. Medición en sitio:
+// Plazoleta → General Sur Alta ≈ 600 m en ~8–10 min. El cálculo geométrico da
+// ~970 m, así que se aplica un factor de escala y un ritmo propios.
+const CORRIDOR_SCALE = 600 / 970
+const CORRIDOR_LOW_RATE = 8 / 600 // min/m (paso fluido)
+const CORRIDOR_HIGH_RATE = 10 / 600 // min/m (tráfico peatonal)
+
+// Distancia real del corredor exterior (redondeada a 10 m).
+function corridorMeters(pts: { x: number; y: number }[]): number {
+  return Math.round((metersOf(pts) * CORRIDOR_SCALE) / 10) * 10
+}
+
+// Rango de tiempo (min enteros) del corredor exterior a partir de su distancia.
+function corridorTime(meters: number): { lowMin: number; highMin: number } {
+  const lowMin = Math.max(1, Math.round(meters * CORRIDOR_LOW_RATE))
+  let highMin = Math.round(meters * CORRIDOR_HIGH_RATE)
+  if (highMin <= lowMin) highMin = lowMin + 1
+  return { lowMin, highMin }
 }
 
 type SpecialRouteBuilder = (lang: "es" | "en") => Omit<RouteResult, "from" | "to">
@@ -949,13 +976,15 @@ function makeSouthCorridorRoute(t1: number, sub: "alta" | "baja", dir: "out" | "
       steps.push({ type: "arrive", instruction: es ? n1.es : n1.en, detail: `${gw} ${n1.gate}`, icon: "flag" })
     }
 
+    const meters = corridorMeters(path)
     return {
       steps,
       totalSteps: steps.length,
       usesExterior: true,
       gateTrace: dedupeGates(dir === "out" ? [t1, 1, 4] : [4, 1, t1]),
       specialPath: path,
-      specialMeters: metersOf(path),
+      specialMeters: meters,
+      specialTime: corridorTime(meters),
     }
   }
 }
