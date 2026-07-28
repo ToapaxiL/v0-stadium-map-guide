@@ -49,9 +49,17 @@ function indicesForGate(g: number): number[] {
 // Regla de distancia: entre cada punto contiguo del anillo hay 50 m.
 const METERS_PER_STEP = 50
 
-// Distancia (m) de un paso entre dos índices contiguos del anillo.
-function stepMeters(_a: number, _b: number): number {
-  return METERS_PER_STEP
+// ─── Anclajes del cruce Norte Occidental (Puerta 9W / 10-11) ───
+// La arista entre General Norte Occidental (índice 12) y Tribuna Norte
+// Occidental (índice 11) NO es directa: el mapa dibuja un recorrido en escalón
+// por la calle (Puerta 9W → 10-11), inyectando 4 puntos de anclaje. Esos puntos
+// son "puntos recorridos" y también cuentan 50 m cada uno, igual que en el mapa
+// (ver NW_KEY_POINTS en stadium-route-map.tsx).
+const NW_ANCHOR_COUNT = 4
+function edgeAnchorPoints(a: number, b: number): number {
+  const lo = Math.min(a, b)
+  const hi = Math.max(a, b)
+  return lo === 11 && hi === 12 ? NW_ANCHOR_COUNT : 0
 }
 
 // Distancia en pasos del anillo (arco más corto) entre dos índices.
@@ -130,9 +138,12 @@ export function routeDistanceMeters(result: RouteResult): number {
   const iA = SECTION_INDEX[result.from] ?? 0
   const iB = SECTION_INDEX[result.to] ?? 0
   const idx = expandAlongPerimeter(traceToIndices(result.gateTrace ?? [], iA, iB))
-  let m = 0
-  for (let i = 1; i < idx.length; i++) m += stepMeters(idx[i - 1], idx[i])
-  return m
+  // Total de puntos recorridos = índices del anillo + anclajes intermedios
+  // (p. ej. el escalón del cruce Norte Occidental). Cada tramo entre puntos
+  // consecutivos son 50 m, contando SIEMPRE los anclajes por los que pasa.
+  let points = idx.length
+  for (let i = 1; i < idx.length; i++) points += edgeAnchorPoints(idx[i - 1], idx[i])
+  return Math.max(0, points - 1) * METERS_PER_STEP
 }
 
 // Regla base EXACTA: 100 m = 1 min → 0.01 min/m (equivale a 50 m = 0,5 min).
