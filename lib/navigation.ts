@@ -278,9 +278,13 @@ function walkInternal(
 // recorrido exterior concreto por la calle. Aquí se definen a mano: sus pasos
 // y su polilínea EXACTA en coordenadas del SVG. Tienen prioridad sobre el motor.
 //
-//  RUTA 1: Tribuna Sur Occidental (P3) → General Sur Alta (P4)
-//          Salida al exterior por Puerta 2-3, subida por Calle Cacica Quilago
-//          e ingreso por la Puerta 4 LOCAL.
+//  RUTA 1: Bloque Sur Occidental {Plazoleta(P1), P2, P3} → General Sur (P4)
+//          El paso por la Puerta 2-3 quedó OBSOLETO. Ahora se REGRESA a la
+//          Plazoleta, se baja hasta la Puerta 1, se sale, se camina por la
+//          Av. John F. Kennedy y luego se sube por la Calle Cacica Quilago
+//          hasta la Puerta 4 LOCAL. El tramo exterior sigue EXACTAMENTE los 5
+//          anclajes del SVG (extP1Kennedy → extKennedy → extPlayaRoja →
+//          extAmarilla → extCacica).
 // ============================================================
 
 // Nodos del nuevo SVG usados por las rutas especiales (coords viewBox).
@@ -323,10 +327,25 @@ const PT = {
   p1TurnUp:      { x: 531.822, y: 418.299 }, // giro hacia arriba en la Puerta 1
   plazoletaP1:   { x: 474.215, y: 390.346 }, // Plazoleta (Puerta 1) — destino real
 
+  // ── Corredor exterior EXACTO de la RUTA 1 (5 anclajes cls-34 del SVG) ──
+  // Orden de recorrido saliendo por la Puerta 1: sobre Av. John F. Kennedy a la
+  // altura de la Puerta 1, hacia la esquina, subida en escalón por P. Playa
+  // Roja y P. Amarilla, y esquina hacia la Calle Cacica Quilago.
+  extP1Kennedy:  { x: 531.822, y: 503.986 }, // Av. J.F. Kennedy, alineado con la Puerta 1
+  extKennedy:    { x: 690.936, y: 503.986 }, // Av. J.F. Kennedy, esquina inferior derecha
+  extPlayaRoja:  { x: 690.936, y: 459.428 }, // P. Playa Roja
+  extAmarilla:   { x: 742.090, y: 459.428 }, // P. Amarilla
+  extCacica:     { x: 783.309, y: 434.407 }, // esquina hacia la Calle Cacica Quilago
+
   // Asientos del bloque Sur/Norte Occidental (para las rutas del bucle oeste).
   p11Seat:       { x: 409.190, y: 363.356 }, // Palco Norte Occidental (P11)
   p2Seat:        { x: 537.973, y: 363.356 }, // Palco Sur Occidental (P2)
   p3Seat:        { x: 599.981, y: 348.188 }, // Tribuna Sur Occidental (P3)
+}
+
+// Elimina puertas repetidas consecutivas del rastro (p. ej. [1,1,4] → [1,4]).
+function dedupeGates(gates: number[]): number[] {
+  return gates.filter((g, i) => i === 0 || g !== gates[i - 1])
 }
 
 // Longitud de una polilínea (unidades SVG).
@@ -837,13 +856,16 @@ function makeWestBoxToNorthEastRoute(dir: "n2s" | "s2n"): SpecialRouteBuilder {
 }
 
 // ============================================================
-// Corredor Sur (Puerta 2-3 + Calle Cacica Quilago)
+// Corredor Sur (Plazoleta → Puerta 1 → Av. J.F. Kennedy → Cacica Quilago)
 // ------------------------------------------------------------
-// El paso interno P3 ✖ P4 está cortado: TODA ruta entre el bloque Sur
-// Occidental {Plazoleta(P1), P2, P3} y la General Sur (P4) debe salir por la
-// Puerta 2-3 y subir por la Calle Cacica Quilago hasta la Puerta 4 LOCAL.
-// Se genera con makeSouthCorridorRoute para que mapa e indicaciones coincidan
-// siempre, sin importar cuál de las 3 secciones del sur occidental sea.
+// El paso interno P3 ✖ P4 está cortado y la antigua salida por la Puerta 2-3
+// quedó OBSOLETA. TODA ruta entre el bloque Sur Occidental {Plazoleta(P1),
+// P2, P3} y la General Sur (P4) ahora REGRESA a la Plazoleta, baja hasta la
+// Puerta 1, sale, recorre la Av. John F. Kennedy y sube por la Calle Cacica
+// Quilago hasta la Puerta 4 LOCAL. El tramo exterior sigue EXACTO los 5
+// anclajes del SVG (extP1Kennedy → extKennedy → extPlayaRoja → extAmarilla →
+// extCacica). Se genera con makeSouthCorridorRoute para que mapa e
+// indicaciones coincidan siempre.
 // ============================================================
 const SOUTH_T1_NAMES: Record<number, { es: string; en: string; gate: string }> = {
   1: { es: "Plazoleta",              en: "Plaza",          gate: "1" },
@@ -855,16 +877,21 @@ const SOUTH_P4_NAMES: Record<"alta" | "baja", { es: string; en: string }> = {
   baja: { es: "General Sur Baja", en: "South Low General" },
 }
 
-// Cola interior del bloque Sur Occidental: del asiento de la sección hasta P3.
+// Cola interior del bloque Sur Occidental: del asiento de la sección de vuelta
+// a la Plazoleta (Puerta 1), punto de regreso antes de salir al exterior.
 function southTail1(gate: number): Pt[] {
-  if (gate === 1) return [PT.plazoletaP1, PT.p2Seat, PT.p3]
-  if (gate === 2) return [PT.p2Seat, PT.p3]
-  return [PT.p3] // P3
+  if (gate === 1) return [PT.plazoletaP1]
+  if (gate === 2) return [PT.p2Seat, PT.plazoletaP1]
+  return [PT.p3, PT.p2Seat, PT.plazoletaP1] // P3 → P2 → Plazoleta
 }
-// Tramo exterior P3 → Cacica Quilago → Puerta 4 LOCAL → General Sur Alta.
-// A la General Sur SIEMPRE se ingresa por Alta. A la Baja NUNCA se entra
-// directo: se llega subiendo desde Alta (p4AltaSeat → p4BajaSeat).
-const P4_ENTER = [PT.p23Exterior, PT.calleAbajo, PT.calleArriba, PT.p4Local, PT.p4Junction, PT.p4AltaSeat]
+// Tramo exterior: Plazoleta → Puerta 1 → Av. John F. Kennedy → Calle Cacica
+// Quilago → Puerta 4 LOCAL → General Sur Alta. Pasa EXACTO por los 5 anclajes
+// del SVG. A la General Sur SIEMPRE se ingresa por Alta; a la Baja NUNCA se
+// entra directo (se sube desde Alta: p4AltaSeat → p4BajaSeat).
+const P4_ENTER = [
+  PT.p1TurnUp, PT.extP1Kennedy, PT.extKennedy, PT.extPlayaRoja, PT.extAmarilla, PT.extCacica,
+  PT.calleArriba, PT.p4Local, PT.p4Junction, PT.p4AltaSeat,
+]
 function p4Head(sub: "alta" | "baja"): Pt[] {
   return sub === "alta" ? [...P4_ENTER] : [...P4_ENTER, PT.p4BajaSeat]
 }
@@ -900,10 +927,11 @@ function makeSouthCorridorRoute(t1: number, sub: "alta" | "baja", dir: "out" | "
 
     if (dir === "out") {
       steps.push({ type: "start", instruction: es ? n1.es : n1.en, detail: `${gw} ${n1.gate}`, icon: "pin" })
-      if (t1 !== 3)
-        steps.push({ type: "internal", instruction: es ? "Camina hasta la Puerta 3" : "Walk to Gate 3", icon: "walk" })
-      steps.push({ type: "external", instruction: es ? "Sal por la Puerta 2-3" : "Exit through Gate 2-3", icon: "exit" })
-      steps.push({ type: "external", instruction: es ? "Camina por Calle Cacica Quilago" : "Walk along Calle Cacica Quilago", icon: "walk" })
+      if (t1 !== 1)
+        steps.push({ type: "internal", instruction: es ? "Regresa a la Plazoleta (Puerta 1)" : "Return to the Plaza (Gate 1)", icon: "walk" })
+      steps.push({ type: "external", instruction: es ? "Baja y sal por la Puerta 1" : "Go down and exit through Gate 1", icon: "exit" })
+      steps.push({ type: "external", instruction: es ? "Camina por la Av. John F. Kennedy" : "Walk along Av. John F. Kennedy", icon: "walk" })
+      steps.push({ type: "external", instruction: es ? "Sube por la Calle Cacica Quilago" : "Go up Calle Cacica Quilago", icon: "walk" })
       steps.push({ type: "external", instruction: es ? "Ingresa por la Puerta 4 Local a General Sur Alta" : "Enter through Gate 4 Local into South High General", icon: "enter" })
       if (sub === "baja")
         steps.push({ type: "internal", instruction: es ? "Camina de General Sur Alta a General Sur Baja" : "Walk from South High to South Low General", icon: "walk" })
@@ -913,9 +941,10 @@ function makeSouthCorridorRoute(t1: number, sub: "alta" | "baja", dir: "out" | "
       if (sub === "baja")
         steps.push({ type: "internal", instruction: es ? "Camina de General Sur Baja a General Sur Alta" : "Walk from South Low to South High General", icon: "walk" })
       steps.push({ type: "external", instruction: es ? "Sal por la Puerta 4 Local" : "Exit through Gate 4 Local", icon: "exit" })
-      steps.push({ type: "external", instruction: es ? "Camina por Calle Cacica Quilago" : "Walk along Calle Cacica Quilago", icon: "walk" })
-      steps.push({ type: "external", instruction: es ? "Ingresa por la Puerta 2-3" : "Enter through Gate 2-3", icon: "enter" })
-      if (t1 !== 3)
+      steps.push({ type: "external", instruction: es ? "Baja por la Calle Cacica Quilago" : "Go down Calle Cacica Quilago", icon: "walk" })
+      steps.push({ type: "external", instruction: es ? "Camina por la Av. John F. Kennedy" : "Walk along Av. John F. Kennedy", icon: "walk" })
+      steps.push({ type: "external", instruction: es ? "Ingresa por la Puerta 1 (Plazoleta)" : "Enter through Gate 1 (Plaza)", icon: "enter" })
+      if (t1 !== 1)
         steps.push({ type: "internal", instruction: es ? `Camina hasta la Puerta ${n1.gate}` : `Walk to Gate ${n1.gate}`, icon: "walk" })
       steps.push({ type: "arrive", instruction: es ? n1.es : n1.en, detail: `${gw} ${n1.gate}`, icon: "flag" })
     }
@@ -924,7 +953,7 @@ function makeSouthCorridorRoute(t1: number, sub: "alta" | "baja", dir: "out" | "
       steps,
       totalSteps: steps.length,
       usesExterior: true,
-      gateTrace: dir === "out" ? [t1, 3, 4] : [4, 3, t1],
+      gateTrace: dedupeGates(dir === "out" ? [t1, 1, 4] : [4, 1, t1]),
       specialPath: path,
       specialMeters: metersOf(path),
     }
@@ -960,10 +989,11 @@ function makeEastCorridorRoute(t1: number, east: number, dir: "out" | "in"): Spe
 
     if (dir === "out") {
       steps.push({ type: "start", instruction: es ? n1.es : n1.en, detail: `${gw} ${n1.gate}`, icon: "pin" })
-      if (t1 !== 3)
-        steps.push({ type: "internal", instruction: es ? "Camina hasta la Puerta 3" : "Walk to Gate 3", icon: "walk" })
-      steps.push({ type: "external", instruction: es ? "Sal por la Puerta 2-3" : "Exit through Gate 2-3", icon: "exit" })
-      steps.push({ type: "external", instruction: es ? "Camina por Calle Cacica Quilago" : "Walk along Calle Cacica Quilago", icon: "walk" })
+      if (t1 !== 1)
+        steps.push({ type: "internal", instruction: es ? "Regresa a la Plazoleta (Puerta 1)" : "Return to the Plaza (Gate 1)", icon: "walk" })
+      steps.push({ type: "external", instruction: es ? "Baja y sal por la Puerta 1" : "Go down and exit through Gate 1", icon: "exit" })
+      steps.push({ type: "external", instruction: es ? "Camina por la Av. John F. Kennedy" : "Walk along Av. John F. Kennedy", icon: "walk" })
+      steps.push({ type: "external", instruction: es ? "Sube por la Calle Cacica Quilago" : "Go up Calle Cacica Quilago", icon: "walk" })
       steps.push({ type: "external", instruction: es ? "Ingresa por la Puerta 4 Local a General Sur Alta" : "Enter through Gate 4 Local into South High General", icon: "enter" })
       steps.push({ type: "internal", instruction: es
         ? "Camina de General Sur Alta a General Sur Baja"
@@ -997,9 +1027,10 @@ function makeEastCorridorRoute(t1: number, east: number, dir: "out" | "in"): Spe
         ? "Camina de General Sur Baja a General Sur Alta"
         : "Walk from South Low General to South High General", icon: "walk" })
       steps.push({ type: "external", instruction: es ? "Sal por la Puerta 4 Local" : "Exit through Gate 4 Local", icon: "exit" })
-      steps.push({ type: "external", instruction: es ? "Camina por Calle Cacica Quilago" : "Walk along Calle Cacica Quilago", icon: "walk" })
-      steps.push({ type: "external", instruction: es ? "Ingresa por la Puerta 2-3" : "Enter through Gate 2-3", icon: "enter" })
-      if (t1 !== 3)
+      steps.push({ type: "external", instruction: es ? "Baja por la Calle Cacica Quilago" : "Go down Calle Cacica Quilago", icon: "walk" })
+      steps.push({ type: "external", instruction: es ? "Camina por la Av. John F. Kennedy" : "Walk along Av. John F. Kennedy", icon: "walk" })
+      steps.push({ type: "external", instruction: es ? "Ingresa por la Puerta 1 (Plazoleta)" : "Enter through Gate 1 (Plaza)", icon: "enter" })
+      if (t1 !== 1)
         steps.push({ type: "internal", instruction: es ? `Camina hasta la Puerta ${n1.gate}` : `Walk to Gate ${n1.gate}`, icon: "walk" })
       steps.push({ type: "arrive", instruction: es ? n1.es : n1.en, detail: `${gw} ${n1.gate}`, icon: "flag" })
     }
@@ -1008,7 +1039,7 @@ function makeEastCorridorRoute(t1: number, east: number, dir: "out" | "in"): Spe
       steps,
       totalSteps: steps.length,
       usesExterior: true,
-      gateTrace: dir === "out" ? [t1, 3, 4, east] : [east, 4, 3, t1],
+      gateTrace: dedupeGates(dir === "out" ? [t1, 1, 4, east] : [east, 4, 1, t1]),
       specialPath: path,
       specialMeters: metersOf(path),
     }
