@@ -366,8 +366,9 @@ function metersOf(pts: { x: number; y: number }[]): number {
 
 // Regla general de distancia: entre cada punto colocado en el mapa hay 50 m.
 // Se aplica a los recorridos exteriores (corredor Sur y Este), donde cada
-// vértice del `specialPath` es un punto del estadio. El tiempo se estima luego
-// con el ritmo global (100 m = 1 min, ver route-metrics.ts).
+// vértice del `specialPath` es un punto del estadio: 50 m entre punto y punto.
+// El tiempo se estima luego con el ritmo global (100 m = 1 min, ver
+// route-metrics.ts).
 const METERS_PER_POINT = 50
 function pointsMeters(pts: { x: number; y: number }[]): number {
   return Math.max(0, pts.length - 1) * METERS_PER_POINT
@@ -1591,7 +1592,7 @@ function resolveRoute(from: number, to: number, lang: "es" | "en" = "es"): Resol
     steps.push(...ext(10, ["H. Vans Risn", "La Esperanza"], 1, { exitLabel: "10-11" }))
   }
 
-  // ── Aproximación al bloque Norte Occidental por la Puerta 10-11 ──────────
+  // ── Aproximación al bloque Norte Occidental por la Puerta 10-11 ──���───────
   // P10 (Tribuna Norte Occ.) y P11 (Palco Norte Occ.) comparten el ACCESO
   // exterior "Puerta 10-11". Por eso, al salir/entrar del bloque hacia el
   // exterior NO se pasa por dentro de la otra sección: desde P11 solo se camina

@@ -6,13 +6,14 @@
 // DISTANCIA (exacta, nunca aproximada):
 //   - Entre cada punto contiguo (anillo o corredor exterior): 50 m por tramo.
 //
-// TIEMPO (rango ESTRECHO en minutos ENTEROS, realista con público):
-//   Regla base: 100 m = 1 min.
+// TIEMPO (minutos ENTEROS, realista con público):
+//   Regla base EXACTA: 100 m = 1 min (50 m = 0,5 min).
+//   El valor base sigue la regla; el rango añade +1 min de margen.
 //   200 m: 2–3 min
-//   400 m: 4–6 min
-//   600 m: 6–9 min
-//   800 m: 8–12 min
-//   Ritmo fluido → tráfico peatonal denso. Nunca se usan decimales.
+//   400 m: 4–5 min
+//   600 m: 6–7 min
+//   800 m: 8–9 min
+//   Nunca se usan decimales.
 // ============================================================
 
 import type { RouteResult } from "./navigation"
@@ -115,13 +116,12 @@ export function routeDistanceMeters(result: RouteResult): number {
   return m
 }
 
-// Regla base: 100 m = 1 min (ritmo fluido con público) → 0.01 min/m.
-// Se mantiene un rango: el límite alto añade margen por tráfico peatonal denso.
-//   - Bajo:  1,0 min por 100 m  (0.010 min/m)  → regla base
-//   - Alto:  1,5 min por 100 m  (0.015 min/m)  → tráfico peatonal denso
-// Ejemplos: 100 m ≈ 1–2 min · 200 m ≈ 2–3 min · 600 m ≈ 6–9 min · 1000 m ≈ 10–15 min
-const LOW_RATE = 0.01
-const HIGH_RATE = 0.015
+// Regla base EXACTA: 100 m = 1 min → 0.01 min/m (equivale a 50 m = 0,5 min).
+// El valor central se calcula con esta regla; el rango solo añade un pequeño
+// margen (±1 min) para reflejar el ritmo con público, sin cambiar la regla.
+// Ejemplos (valor base): 50 m ≈ 1 min · 100 m = 1 min · 200 m = 2 min ·
+// 600 m = 6 min · 1000 m = 10 min.
+const RATE = 0.01
 
 export interface RouteTime {
   /** Minutos, ritmo fluido con público. */
@@ -130,17 +130,18 @@ export interface RouteTime {
   highMin: number
 }
 
-/** Rango de tiempo estimado realista con público. Siempre enteros. */
+/**
+ * Rango de tiempo estimado, siempre enteros. El valor base sigue EXACTO la
+ * regla 100 m = 1 min; el rango añade +1 min de margen por tráfico con público.
+ */
 export function routeTimeRange(meters: number): RouteTime {
-  const lowMin = Math.max(1, Math.round(meters * LOW_RATE))
-  let highMin = Math.round(meters * HIGH_RATE)
-  if (highMin <= lowMin) highMin = lowMin + 1
-  return { lowMin, highMin }
+  const base = Math.max(1, Math.round(meters * RATE))
+  return { lowMin: base, highMin: base + 1 }
 }
 
 /**
  * Rango de tiempo de una ruta, estimado desde su distancia con la regla global
- * (100 m = 1,5 min, con margen alto por tráfico peatonal).
+ * (100 m = 1 min, con +1 min de margen por tráfico peatonal).
  */
 export function routeTimeFor(result: RouteResult): RouteTime {
   return routeTimeRange(routeDistanceMeters(result))
