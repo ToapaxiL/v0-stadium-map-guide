@@ -287,27 +287,16 @@ function walkInternal(
 // Nodos del nuevo SVG usados por las rutas especiales (coords viewBox).
 const PT = {
   p3:            { x: 599.981, y: 348.188 }, // Tribuna Sur Occidental (P3)
-  // ── Vereda exterior sur/este: Puerta 1 → Av. John F. Kennedy → esquina Cacica Quilago ──
-  // Coordenadas tomadas del contorno REAL de la fachada del SVG (muestreo de píxeles).
-  // La vereda de Kennedy corre a y≈462, escalona en P. Playa Roja / P. Amarilla (y≈447),
-  // y sube en DIAGONAL por la esquina redondeada (Puerta 2-3) hasta la Calle Cacica Quilago.
-  kennedyP1:     { x: 531.822, y: 462.000 }, // esquina Puerta 1 sobre Av. John F. Kennedy (nodo SVG)
-  playaRojaA:    { x: 604.000, y: 462.000 }, // recorrido recto por Kennedy hasta P. Playa Roja
-  playaRojaB:    { x: 610.000, y: 447.000 }, // sube al escalón de P. Playa Roja
-  amarillaC:     { x: 662.000, y: 447.000 }, // cruza la muesca de P. Playa Roja / P. Amarilla
-  amarillaD:     { x: 678.000, y: 462.000 }, // baja de nuevo tras P. Amarilla
-  kennedyCorner: { x: 705.000, y: 462.000 }, // fin del tramo horizontal de Kennedy
-  seCorner1:     { x: 758.000, y: 438.000 }, // diagonal de la esquina redondeada (Puerta 2-3)
-  seCorner2:     { x: 788.000, y: 398.000 }, // llega al muro este / Calle Cacica Quilago
-  calleAbajo:    { x: 792.000, y: 345.000 }, // Calle Cacica Quilago, saliente de Puerta 2-3
-  calleArriba:   { x: 786.000, y: 262.000 }, // Calle Cacica Quilago a la altura del ingreso P4
-  p4Local:       { x: 743.161, y: 229.997 }, // ingreso Puerta 4 LOCAL (punto SVG)
-  p4Junction:    { x: 742.089, y: 289.996 }, // giro interior a la altura de General Sur Alta (punto SVG)
+  kennedyCorner: { x: 786.981, y: 486.546 }, // esquina Av. John F. Kennedy ↔ Calle Cacica Quilago
+  calleAbajo:    { x: 786.981, y: 383.476 }, // Calle Cacica Quilago, esquina inferior
+  calleArriba:   { x: 786.709, y: 193.228 }, // Calle Cacica Quilago, esquina superior
+  p4Local:       { x: 746.709, y: 229.997 }, // ingreso Puerta 4 LOCAL
+  p4Junction:    { x: 747.12,  y: 289.997 }, // giro interior a la altura de General Sur Alta
   p4AltaSeat:    { x: 670.291, y: 289.996 }, // General Sur Alta (P4)
   p4BajaSeat:    { x: 670.292, y: 229.997 }, // General Sur Baja (P4) — se llega SOLO desde Alta
 
   // ── Lado Sur Oriental (continuación interna desde General Sur Baja) ─�����
-  p5Seat:        { x: 599.981, y: 164.310 }, // Tribuna Sur Oriental (P5) — punto SVG
+  p5Seat:        { x: 599.981, y: 170.31  }, // Tribuna Sur Oriental (P5)
   p6Seat:        { x: 537.972, y: 153.438 }, // Palco Sur Oriental (P6)
 
   // ── Lado Norte Oriental (acceso por el OESTE, calle H. Vans Risn) ���─
@@ -315,7 +304,7 @@ const PT = {
   // a General Norte Oriental (P9 Ori) se entra por 9W y se sube
   // pasando por General Norte Occidental.
   p7Seat:        { x: 409.189, y: 153.438 }, // Palco Norte Oriental (P7)
-  p8Seat:        { x: 345.983, y: 164.188 }, // Tribuna Norte Oriental (P8) — punto SVG
+  p8Seat:        { x: 345.983, y: 170.188 }, // Tribuna Norte Oriental (P8)
   p9OriSeat:     { x: 275.996, y: 224.819 }, // General Norte Oriental (P9 Ori)
   p78Exterior:   { x: 226.996, y: 170.188 }, // salida Puerta 7-8 (a la calle H. Vans Risn)
 
@@ -333,7 +322,7 @@ const PT = {
   laEspNWCorner: { x: 212.253, y: 467.546 }, // esquina inferior (inicio La Esperanza)
   laEspP1:       { x: 531.823, y: 486.546 }, // La Esperanza a la altura de la Puerta 1
   p1TurnUp:      { x: 531.822, y: 418.299 }, // giro hacia arriba en la Puerta 1
-  plazoletaP1:   { x: 474.215, y: 390.346 }, // Plazoleta (Puerta 1) — destino real (punto SVG)
+  plazoletaP1:   { x: 474.215, y: 388.346 }, // Plazoleta (Puerta 1) — destino real
 
   // Asientos del bloque Sur/Norte Occidental (para las rutas del bucle oeste).
   p11Seat:       { x: 409.190, y: 363.356 }, // Palco Norte Occidental (P11)
@@ -880,12 +869,7 @@ function southTail1(gate: number): Pt[] {
 // Quilago → Puerta 4 LOCAL → General Sur Alta. (El antiguo paso por la Puerta
 // 2-3 quedó obsoleto.) A la General Sur SIEMPRE se ingresa por Alta; a la Baja
 // NUNCA se entra directo: se llega subiendo desde Alta (p4AltaSeat → p4BajaSeat).
-const P4_ENTER = [
-  PT.p1TurnUp, PT.kennedyP1,
-  PT.playaRojaA, PT.playaRojaB, PT.amarillaC, PT.amarillaD,
-  PT.kennedyCorner, PT.seCorner1, PT.seCorner2, PT.calleAbajo, PT.calleArriba,
-  PT.p4Local, PT.p4Junction, PT.p4AltaSeat,
-]
+const P4_ENTER = [PT.p1TurnUp, PT.laEspP1, PT.kennedyCorner, PT.calleAbajo, PT.calleArriba, PT.p4Local, PT.p4Junction, PT.p4AltaSeat]
 function p4Head(sub: "alta" | "baja"): Pt[] {
   return sub === "alta" ? [...P4_ENTER] : [...P4_ENTER, PT.p4BajaSeat]
 }

@@ -12,10 +12,10 @@ const VH = 566.929
 // índice 9 = Plazoleta (nodo virtual entre P11 y P2 en el perímetro)
 const PERIMETER: { gate: number; sub?: string; label?: string; x: number; y: number }[] = [
   { gate: 9,  sub: "ori",  x: 275.996, y: 224.819 }, // 0  P9 Oriental  (izq-arriba)
-  { gate: 8,               x: 345.983, y: 164.188 }, // 1  P8           (esq. noroeste)
+  { gate: 8,               x: 345.983, y: 170.188 }, // 1  P8           (esq. noroeste)
   { gate: 7,               x: 409.189, y: 153.438 }, // 2  P7           (arriba-izq)
   { gate: 6,               x: 537.972, y: 153.438 }, // 3  P6           (arriba-der)
-  { gate: 5,               x: 599.981, y: 164.310 }, // 4  P5           (esq. noreste)
+  { gate: 5,               x: 599.981, y: 170.31  }, // 4  P5           (esq. noreste)
   { gate: 4,  sub: "baja", x: 670.292, y: 229.997 }, // 5  P4 Baja      (der-arriba)
   { gate: 4,  sub: "alta", x: 670.291, y: 289.996 }, // 6  P4 Alta      (der-abajo)
   { gate: 3,               x: 599.981, y: 348.188 }, // 7  P3           (esq. sureste)
