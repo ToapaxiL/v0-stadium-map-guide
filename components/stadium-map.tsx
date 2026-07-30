@@ -46,6 +46,9 @@ export function StadiumMap() {
   }, [isDarkMode])
   const [activeTab, setActiveTab] = useState("navigate")
   const [hasActiveRoute, setHasActiveRoute] = useState(false)
+  // Se incrementa al pulsar el logo para forzar el remontaje de NavigationGuide
+  // y así restaurar por completo su estado (origen, destino y ruta calculada).
+  const [resetSignal, setResetSignal] = useState(0)
   const filteredSections = stadiumSections.filter((section: StadiumSection) => {
     const matchesFilter = filter === "all" || section.type === filter
     const matchesSearch =
@@ -76,6 +79,9 @@ export function StadiumMap() {
     setSelectedSection(null)
     setFilter("all")
     setSearchQuery("")
+    // Restaura la calculadora de rutas a su estado inicial
+    setHasActiveRoute(false)
+    setResetSignal((s) => s + 1)
   }
 
   return (
@@ -148,7 +154,7 @@ export function StadiumMap() {
       </header>
 
       <main className="container mx-auto px-4 py-6">
-        <Tabs defaultValue="navigate" className="w-full" onValueChange={handleTabChange}>
+        <Tabs value={activeTab} className="w-full" onValueChange={handleTabChange}>
           <TabsList className="grid w-full grid-cols-2 mb-6 bg-muted/80 dark:bg-muted/50 p-1 h-12">
             <TabsTrigger 
               value="navigate" 
@@ -170,7 +176,7 @@ export function StadiumMap() {
             <div className="grid lg:grid-cols-5 gap-6">
               {/* Columna izquierda: calculadora de rutas */}
               <div className={hasActiveRoute ? "lg:col-span-5" : "lg:col-span-2"}>
-                <NavigationGuide onRouteActiveChange={setHasActiveRoute} />
+                <NavigationGuide key={resetSignal} onRouteActiveChange={setHasActiveRoute} />
               </div>
 
               {/* Columna derecha: mapa del estadio (oculto cuando hay una ruta activa) */}
