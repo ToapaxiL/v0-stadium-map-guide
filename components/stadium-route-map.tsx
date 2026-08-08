@@ -200,7 +200,7 @@ export function StadiumRouteMap({ result }: Props) {
       const posB = { ...sp[sp.length - 1], gate: PERIMETER[iB].gate }
       const pathD = toD(sp)
       const len   = pathLength(sp)
-      return { iA, iB, posA, posB, pathD, len, support: result.supportPoints ?? [] }
+      return { iA, iB, posA, posB, pathD, len }
     }
 
     const posA = PERIMETER[iA]
@@ -225,7 +225,7 @@ export function StadiumRouteMap({ result }: Props) {
     const pathD = toD(pts)
     const len   = pathLength(pts)
 
-    return { iA, iB, posA, posB, pathD, len, support: [] as { x: number; y: number }[] }
+    return { iA, iB, posA, posB, pathD, len }
   }, [result])
 
   // Animación draw-on
@@ -249,7 +249,7 @@ export function StadiumRouteMap({ result }: Props) {
     return () => cancelAnimationFrame(raf1)
   }, [data])
 
-  const { posA, posB, pathD, len, support } = data
+  const { posA, posB, pathD, len } = data
 
   return (
     <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
@@ -332,19 +332,6 @@ export function StadiumRouteMap({ result }: Props) {
               strokeDashoffset={`${len}`}
             />
           )}
-
-          {/* Puntos de apoyo del paso interno habilitado (guía del recorrido) */}
-          {support.map((p, i) => (
-            <circle
-              key={`sp-${i}`}
-              cx={p.x}
-              cy={p.y}
-              r={4.5}
-              fill="#0f172a"
-              stroke="white"
-              strokeWidth={1.5}
-            />
-          ))}
 
           {/* Pulso en punto A */}
           <circle cx={posA.x} cy={posA.y} r={15} fill="#22c55e" opacity={0.15}>
