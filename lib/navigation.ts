@@ -312,6 +312,12 @@ const PT = {
   // General Sur Alta → General Sur Baja. Coords tomadas EXACTO de los waypoints
   // (ellipse opacity=0) del SVG.
   passBottom:    { x: 670.292, y: 348.188 }, // ancla del bloque General Sur inferior (a la altura de P3)
+  // Columna del CORREDOR (muescas lado cancha, x≈660): es la vía real por la que
+  // se sube. La entrada al paso está en General Sur BAJA, así que para llegar a
+  // General Sur ALTA hay que subir por el corredor hasta Baja y DEVOLVERSE bajando
+  // por la columna de asientos (la "vuelta" en horquilla que se ve en el mapa).
+  passNotchBottom: { x: 660.866, y: 348.188 }, // corredor a la altura de P3 (pie del paso)
+  passNotchBaja:   { x: 660.866, y: 229.997 }, // corredor al nivel de General Sur Baja (tope de la subida)
 
   // ── Lado Sur Oriental (continuación interna desde General Sur Baja) ─�����
   p5Seat:        { x: 599.981, y: 164.310 }, // Tribuna Sur Oriental (P5)
@@ -946,14 +952,17 @@ function westToP3(gate: number): Pt[] {
   if (gate === 2) return [PT.p2Seat, PT.p3]
   return [PT.p3] // ya en Tribuna Sur Occidental
 }
-// Cabecera del PASO INTERNO desde P3 hasta General Sur, recorriendo los
-// waypoints REALES embebidos del SVG. Desde P3 se avanza en horizontal hasta el
-// ancla del bloque inferior (passBottom) y se sube por la columna de anclas:
-// bloque inferior → General Sur Alta → General Sur Baja. Ya NO se sale del
-// estadio.
+// Cabecera del PASO INTERNO desde P3 hasta General Sur. La entrada al paso está
+// en General Sur BAJA (la parte alta del mapa), a la que se sube por el corredor
+// (columna de muescas). Para GENERAL SUR BAJA se sube por el corredor y se entra.
+// Para GENERAL SUR ALTA hay que subir hasta Baja y DEVOLVERSE bajando por la
+// columna de asientos: eso dibuja la "vuelta" en horquilla que se ve en el mapa.
 function passHead(sub: "alta" | "baja"): Pt[] {
-  if (sub === "alta") return [PT.passBottom, PT.p4AltaSeat]
-  return [PT.passBottom, PT.p4AltaSeat, PT.p4BajaSeat]
+  if (sub === "alta")
+    // P3 → corredor arriba a Baja → cruza a asientos → BAJA hasta Alta (la vuelta)
+    return [PT.passNotchBottom, PT.passNotchBaja, PT.p4BajaSeat, PT.p4AltaSeat]
+  // P3 → corredor arriba a Baja → entra a General Sur Baja
+  return [PT.passNotchBottom, PT.passNotchBaja, PT.p4BajaSeat]
 }
 
 // Cola interna de la General Sur hacia el lado oriental, recorriendo el borde
