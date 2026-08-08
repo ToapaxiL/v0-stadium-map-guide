@@ -40,6 +40,12 @@ export interface RouteResult {
   specialPath?: { x: number; y: number }[]
   /** Distancia EXACTA en metros para rutas especiales (sobrescribe el cálculo por anillo). */
   specialMeters?: number
+  /**
+   * Puntos de apoyo del PASO INTERNO habilitado (coords del mismo viewBox). El
+   * mapa los dibuja como marcadores para guiar el recorrido de Tribuna Sur
+   * Occidental (P3) ↔ General Sur. Ausente en el resto de rutas.
+   */
+  supportPoints?: { x: number; y: number }[]
 }
 
 const SECTION_GATES: Record<string, number> = {
@@ -296,7 +302,16 @@ const PT = {
   p4Local:       { x: 743.161, y: 229.997 }, // ingreso Puerta 4 LOCAL
   p4Junction:    { x: 742.089, y: 289.997 }, // giro interior a la altura de General Sur Alta
   p4AltaSeat:    { x: 670.291, y: 289.996 }, // General Sur Alta (P4)
-  p4BajaSeat:    { x: 670.292, y: 229.997 }, // General Sur Baja (P4) — se llega SOLO desde Alta
+  p4BajaSeat:    { x: 670.292, y: 229.997 }, // General Sur Baja (P4) — parte más alta (arriba)
+
+  // ── PASO INTERNO habilitado (corredor lado cancha) con PUNTOS DE APOYO ──
+  // Conecta Tribuna Sur Occidental (P3) con General Sur SIN salir del estadio.
+  // Desde P3 se avanza al arranque del paso y se sube por los puntos de apoyo:
+  // pasa por el nivel de General Sur Alta (parada intermedia) hasta General Sur
+  // Baja (la parte más alta). Coords en el mismo viewBox del mapa (850×566).
+  passBase:      { x: 640.0, y: 348.188 }, // arranque del paso, junto a P3 (esquina inferior)
+  passAlta:      { x: 640.0, y: 289.996 }, // punto de apoyo al nivel de General Sur Alta
+  passBaja:      { x: 640.0, y: 229.997 }, // punto de apoyo al nivel de General Sur Baja
 
   // ── Lado Sur Oriental (continuación interna desde General Sur Baja) ─�����
   p5Seat:        { x: 599.981, y: 164.310 }, // Tribuna Sur Oriental (P5)
@@ -868,14 +883,14 @@ function makeWestBoxToNorthEastRoute(dir: "n2s" | "s2n"): SpecialRouteBuilder {
 // ============================================================
 // Corredor Sur (Plazoleta → Puerta 1 → Av. J.F. Kennedy → Cacica Quilago)
 // ------------------------------------------------------------
-// El paso interno P3 ✖ P4 está cortado y la antigua salida por la Puerta 2-3
-// quedó OBSOLETA. TODA ruta entre el bloque Sur Occidental {Plazoleta(P1),
-// P2, P3} y la General Sur (P4) ahora REGRESA a la Plazoleta, baja hasta la
-// Puerta 1, sale, recorre la Av. John F. Kennedy y sube por la Calle Cacica
-// Quilago hasta la Puerta 4 LOCAL. El tramo exterior sigue EXACTO los 5
-// anclajes del SVG (extP1Kennedy → extKennedy → extPlayaRoja → extAmarilla →
-// extCacica). Se genera con makeSouthCorridorRoute para que mapa e
-// indicaciones coincidan siempre.
+// YA NO hay que salir del estadio. Un PASO habilitado con PUNTOS DE APOYO
+// conecta Tribuna Sur Occidental (P3) con General Sur. La antigua ruta exterior
+// por la Av. John F. Kennedy / Calle Cacica Quilago queda DESCARTADA.
+// La Plazoleta (P1) y el Palco Sur Occidental (P2) caminan por dentro hasta P3
+// y desde ahí toman el paso. General Sur Baja es la parte más alta (arriba): el
+// paso sube desde P3 pasando por el nivel de General Sur Alta (parada
+// intermedia) hasta la Baja. Se genera con makeSouthCorridorRoute para que mapa
+// e indicaciones coincidan siempre.
 // ============================================================
 const SOUTH_T1_NAMES: Record<number, { es: string; en: string; gate: string }> = {
   1: { es: "Plazoleta",              en: "Plaza",          gate: "1" },
@@ -887,37 +902,37 @@ const SOUTH_P4_NAMES: Record<"alta" | "baja", { es: string; en: string }> = {
   baja: { es: "General Sur Baja", en: "South Low General" },
 }
 
-// Cola interior del bloque Sur Occidental: del asiento de la sección de vuelta
-// a la Plazoleta (Puerta 1), punto de regreso antes de salir al exterior.
-function southTail1(gate: number): Pt[] {
-  if (gate === 1) return [PT.plazoletaP1]
-  if (gate === 2) return [PT.p2Seat, PT.plazoletaP1]
-  return [PT.p3, PT.p2Seat, PT.plazoletaP1] // P3 → P2 → Plazoleta
+// Cola interna del bloque Sur Occidental hasta Tribuna Sur Occidental (P3),
+// donde arranca el PASO habilitado. La Plazoleta (P1) y el Palco Sur Occidental
+// (P2) caminan POR DENTRO del anillo hasta P3; desde P3 ya se está en el
+// arranque del paso.
+function westToP3(gate: number): Pt[] {
+  if (gate === 1) return [PT.plazoletaP1, PT.p2Seat, PT.p3]
+  if (gate === 2) return [PT.p2Seat, PT.p3]
+  return [PT.p3] // ya en Tribuna Sur Occidental
 }
-// Tramo exterior: Plazoleta → Puerta 1 → Av. John F. Kennedy → Calle Cacica
-// Quilago → Puerta 4 LOCAL → General Sur Alta. Pasa EXACTO por los 5 anclajes
-// del SVG. A la General Sur SIEMPRE se ingresa por Alta; a la Baja NUNCA se
-// entra directo (se sube desde Alta: p4AltaSeat → p4BajaSeat).
-const P4_ENTER = [
-  PT.p1TurnUp, PT.extP1Kennedy, PT.extKennedy, PT.extPlayaRoja, PT.extAmarilla, PT.extCacica,
-  PT.calleArriba, PT.p4Local, PT.p4Junction, PT.p4AltaSeat,
-]
-function p4Head(sub: "alta" | "baja"): Pt[] {
-  return sub === "alta" ? [...P4_ENTER] : [...P4_ENTER, PT.p4BajaSeat]
+// Cabecera del PASO INTERNO desde P3 hasta General Sur, guiándose por los
+// PUNTOS DE APOYO. General Sur Baja es la parte más alta (arriba): el paso sube
+// desde P3, pasa por el nivel de General Sur Alta (parada intermedia) y llega a
+// la Baja. Ya NO se sale del estadio.
+function passHead(sub: "alta" | "baja"): Pt[] {
+  if (sub === "alta") return [PT.passBase, PT.passAlta, PT.p4AltaSeat]
+  return [PT.passBase, PT.passAlta, PT.passBaja, PT.p4BajaSeat]
 }
 
 // Cola interna de la General Sur hacia el lado oriental, recorriendo el borde
-// superior en orden físico: Alta → Baja → P5 → P6 → P7 → P8. Todo este
-// recorrido es INTERNO (no vuelve a salir a la calle). Se detiene al llegar a
-// la sección `east` solicitada.
+// superior en orden físico: Baja → P5 → P6 → P7 → P8. Todo este recorrido es
+// INTERNO. Se detiene al llegar a la sección `east` solicitada.
 const EAST_CHAIN: { gate: number; pt: Pt }[] = [
   { gate: 5, pt: PT.p5Seat }, // Tribuna Sur Oriental
   { gate: 6, pt: PT.p6Seat }, // Palco Sur Oriental
   { gate: 7, pt: PT.p7Seat }, // Palco Norte Oriental
   { gate: 8, pt: PT.p8Seat }, // Tribuna Norte Oriental
 ]
-function eastHead(east: number): Pt[] {
-  const pts = [...P4_ENTER, PT.p4BajaSeat] // ...Alta → Baja
+// Desde P3, el paso interno hasta General Sur Baja y luego por el borde superior
+// hasta la sección oriental `east`.
+function passEastHead(east: number): Pt[] {
+  const pts = [...passHead("baja")] // P3 → puntos de apoyo → General Sur Baja
   for (const node of EAST_CHAIN) {
     pts.push(node.pt)
     if (node.gate === east) break
@@ -925,9 +940,15 @@ function eastHead(east: number): Pt[] {
   return pts
 }
 
+// Puntos de apoyo del paso (para dibujarlos como marcadores en el mapa).
+const PASS_POINTS: Pt[] = [PT.passBase, PT.passAlta, PT.passBaja]
+function pickSupportPoints(path: Pt[]): Pt[] {
+  return path.filter((p) => PASS_POINTS.some((q) => q.x === p.x && q.y === p.y))
+}
+
 function makeSouthCorridorRoute(t1: number, sub: "alta" | "baja", dir: "out" | "in"): SpecialRouteBuilder {
   return (lang) => {
-    const forward = [...southTail1(t1), ...p4Head(sub)]
+    const forward = [...westToP3(t1), ...passHead(sub)]
     const path = dir === "out" ? forward : [...forward].reverse()
     const n1 = SOUTH_T1_NAMES[t1]
     const n4 = SOUTH_P4_NAMES[sub]
@@ -937,24 +958,25 @@ function makeSouthCorridorRoute(t1: number, sub: "alta" | "baja", dir: "out" | "
 
     if (dir === "out") {
       steps.push({ type: "start", instruction: es ? n1.es : n1.en, detail: `${gw} ${n1.gate}`, icon: "pin" })
-      if (t1 !== 1)
-        steps.push({ type: "internal", instruction: es ? "Regresa a la Plazoleta (Puerta 1)" : "Return to the Plaza (Gate 1)", icon: "walk" })
-      steps.push({ type: "external", instruction: es ? "Sal por la Puerta 1" : "Exit through Gate 1", icon: "exit" })
-      steps.push({ type: "external", instruction: es ? "Camina por la Av. John F. Kennedy" : "Walk along Av. John F. Kennedy", icon: "walk" })
-      steps.push({ type: "external", instruction: es ? "Sube por la Calle Cacica Quilago" : "Go up Calle Cacica Quilago", icon: "walk" })
-      steps.push({ type: "external", instruction: es ? "Ingresa por la Puerta 4 Local a General Sur Alta" : "Enter through Gate 4 Local into South High General", icon: "enter" })
-      if (sub === "baja")
-        steps.push({ type: "internal", instruction: es ? "Camina de General Sur Alta a General Sur Baja" : "Walk from South High to South Low General", icon: "walk" })
+      if (t1 !== 3)
+        steps.push({ type: "internal", instruction: es ? "Camina hasta Tribuna Sur Occidental (Puerta 3)" : "Walk to South West Stand (Gate 3)", icon: "walk" })
+      steps.push({ type: "internal", instruction: es
+        ? "Toma el paso habilitado y guíate por los puntos de apoyo"
+        : "Take the enabled passage and follow the support points", icon: "enter" })
+      if (sub === "alta")
+        steps.push({ type: "internal", instruction: es ? "Sube hasta General Sur Alta" : "Go up to South High General", icon: "walk" })
+      else
+        steps.push({ type: "internal", instruction: es
+          ? "Sigue por los puntos de apoyo, pasando General Sur Alta, hasta General Sur Baja (la parte más alta)"
+          : "Continue along the support points, past South High General, up to South Low General (the highest part)", icon: "walk" })
       steps.push({ type: "arrive", instruction: es ? n4.es : n4.en, detail: `${gw} 4`, icon: "flag" })
     } else {
       steps.push({ type: "start", instruction: es ? n4.es : n4.en, detail: `${gw} 4`, icon: "pin" })
-      if (sub === "baja")
-        steps.push({ type: "internal", instruction: es ? "Camina de General Sur Baja a General Sur Alta" : "Walk from South Low to South High General", icon: "walk" })
-      steps.push({ type: "external", instruction: es ? "Sal por la Puerta 4 Local" : "Exit through Gate 4 Local", icon: "exit" })
-      steps.push({ type: "external", instruction: es ? "Baja por la Calle Cacica Quilago" : "Go down Calle Cacica Quilago", icon: "walk" })
-      steps.push({ type: "external", instruction: es ? "Camina por la Av. John F. Kennedy" : "Walk along Av. John F. Kennedy", icon: "walk" })
-      steps.push({ type: "external", instruction: es ? "Ingresa por la Puerta 1 (Plazoleta)" : "Enter through Gate 1 (Plaza)", icon: "enter" })
-      if (t1 !== 1)
+      steps.push({ type: "internal", instruction: es
+        ? "Toma el paso habilitado y baja guiándote por los puntos de apoyo"
+        : "Take the enabled passage and go down following the support points", icon: "enter" })
+      steps.push({ type: "internal", instruction: es ? "Llega a Tribuna Sur Occidental (Puerta 3)" : "Reach South West Stand (Gate 3)", icon: "walk" })
+      if (t1 !== 3)
         steps.push({ type: "internal", instruction: es ? `Camina hasta la Puerta ${n1.gate}` : `Walk to Gate ${n1.gate}`, icon: "walk" })
       steps.push({ type: "arrive", instruction: es ? n1.es : n1.en, detail: `${gw} ${n1.gate}`, icon: "flag" })
     }
@@ -962,10 +984,11 @@ function makeSouthCorridorRoute(t1: number, sub: "alta" | "baja", dir: "out" | "
     return {
       steps,
       totalSteps: steps.length,
-      usesExterior: true,
-      gateTrace: dedupeGates(dir === "out" ? [t1, 1, 4] : [4, 1, t1]),
+      usesExterior: false,
+      gateTrace: dedupeGates(dir === "out" ? [t1, 3, 4] : [4, 3, t1]),
       specialPath: path,
       specialMeters: pointsMeters(path),
+      supportPoints: pickSupportPoints(path),
     }
   }
 }
@@ -973,12 +996,11 @@ function makeSouthCorridorRoute(t1: number, sub: "alta" | "baja", dir: "out" | "
 // ============================================================
 // Corredor Sur → Oriental (Cacica Quilago → Alta → Baja → P5/P6)
 // ------------------------------------------------------------
-// El bloque Sur Occidental {Plazoleta(P1), P2, P3} llega al lado Sur Oriental
-// {Tribuna Sur Oriental(P5), Palco Sur Oriental(P6)} SIEMPRE por el mismo
-// corredor: sale por la Puerta 2-3, sube por Calle Cacica Quilago, entra por la
-// Puerta 4 LOCAL a General Sur Alta y continúa INTERNAMENTE por Alta → Baja →
-// P5 (→ P6). A la General Sur Baja nunca se entra directo; desde ella siempre
-// se sigue hacia el oriental.
+// El bloque Sur Occidental {Plazoleta(P1), P2, P3} llega al lado oriental
+// {P5, P6, P7, P8} SIN salir del estadio: camina por dentro hasta Tribuna Sur
+// Occidental (P3), toma el PASO habilitado guiándose por los puntos de apoyo
+// hasta General Sur Baja (la parte más alta) y continúa INTERNAMENTE por el
+// borde superior (Baja → P5 → P6 → …). El cruce Baja ↔ P5 usa el paso habilitado.
 // ============================================================
 const SOUTH_EAST_NAMES: Record<number, { es: string; en: string; gate: string }> = {
   5: { es: "Tribuna Sur Oriental",   en: "South East Stand", gate: "5" },
@@ -989,7 +1011,7 @@ const SOUTH_EAST_NAMES: Record<number, { es: string; en: string; gate: string }>
 
 function makeEastCorridorRoute(t1: number, east: number, dir: "out" | "in"): SpecialRouteBuilder {
   return (lang) => {
-    const forward = [...southTail1(t1), ...eastHead(east)]
+    const forward = [...westToP3(t1), ...passEastHead(east)]
     const path = dir === "out" ? forward : [...forward].reverse()
     const n1 = SOUTH_T1_NAMES[t1]
     const nE = SOUTH_EAST_NAMES[east]
@@ -999,16 +1021,12 @@ function makeEastCorridorRoute(t1: number, east: number, dir: "out" | "in"): Spe
 
     if (dir === "out") {
       steps.push({ type: "start", instruction: es ? n1.es : n1.en, detail: `${gw} ${n1.gate}`, icon: "pin" })
-      if (t1 !== 1)
-        steps.push({ type: "internal", instruction: es ? "Regresa a la Plazoleta (Puerta 1)" : "Return to the Plaza (Gate 1)", icon: "walk" })
-      steps.push({ type: "external", instruction: es ? "Sal por la Puerta 1" : "Exit through Gate 1", icon: "exit" })
-      steps.push({ type: "external", instruction: es ? "Camina por la Av. John F. Kennedy" : "Walk along Av. John F. Kennedy", icon: "walk" })
-      steps.push({ type: "external", instruction: es ? "Sube por la Calle Cacica Quilago" : "Go up Calle Cacica Quilago", icon: "walk" })
-      steps.push({ type: "external", instruction: es ? "Ingresa por la Puerta 4 Local a General Sur Alta" : "Enter through Gate 4 Local into South High General", icon: "enter" })
+      if (t1 !== 3)
+        steps.push({ type: "internal", instruction: es ? "Camina hasta Tribuna Sur Occidental (Puerta 3)" : "Walk to South West Stand (Gate 3)", icon: "walk" })
       steps.push({ type: "internal", instruction: es
-        ? "Camina de General Sur Alta a General Sur Baja"
-        : "Walk from South High General to South Low General", icon: "walk" })
-      // El cruce al lado oriental ocurre aquí: paso habilitado P4 → P5.
+        ? "Toma el paso habilitado y guíate por los puntos de apoyo hasta General Sur Baja"
+        : "Take the enabled passage and follow the support points to South Low General", icon: "enter" })
+      // El cruce al lado oriental ocurre aquí: paso habilitado General Sur Baja → P5.
       steps.push({ type: "internal", instruction: T[lang].passageP4P5, icon: "enter" })
       if (east > 5) {
         steps.push({ type: "internal", instruction: es
@@ -1031,16 +1049,12 @@ function makeEastCorridorRoute(t1: number, east: number, dir: "out" | "in"): Spe
               ? "Walk through the South East to Tribuna Sur Oriental"
               : "Walk to Tribuna Sur Oriental"), icon: "walk" })
       }
-      // El cruce al General Sur ocurre aquí: paso habilitado P5 → P4.
+      // El cruce al General Sur ocurre aquí: paso habilitado P5 → General Sur Baja.
       steps.push({ type: "internal", instruction: T[lang].passageP4P5, icon: "enter" })
       steps.push({ type: "internal", instruction: es
-        ? "Camina de General Sur Baja a General Sur Alta"
-        : "Walk from South Low General to South High General", icon: "walk" })
-      steps.push({ type: "external", instruction: es ? "Sal por la Puerta 4 Local" : "Exit through Gate 4 Local", icon: "exit" })
-      steps.push({ type: "external", instruction: es ? "Baja por la Calle Cacica Quilago" : "Go down Calle Cacica Quilago", icon: "walk" })
-      steps.push({ type: "external", instruction: es ? "Camina por la Av. John F. Kennedy" : "Walk along Av. John F. Kennedy", icon: "walk" })
-      steps.push({ type: "external", instruction: es ? "Ingresa por la Puerta 1 (Plazoleta)" : "Enter through Gate 1 (Plaza)", icon: "enter" })
-      if (t1 !== 1)
+        ? "Baja por el paso habilitado, guiándote por los puntos de apoyo, hasta Tribuna Sur Occidental (Puerta 3)"
+        : "Go down the enabled passage, following the support points, to South West Stand (Gate 3)", icon: "walk" })
+      if (t1 !== 3)
         steps.push({ type: "internal", instruction: es ? `Camina hasta la Puerta ${n1.gate}` : `Walk to Gate ${n1.gate}`, icon: "walk" })
       steps.push({ type: "arrive", instruction: es ? n1.es : n1.en, detail: `${gw} ${n1.gate}`, icon: "flag" })
     }
@@ -1048,10 +1062,11 @@ function makeEastCorridorRoute(t1: number, east: number, dir: "out" | "in"): Spe
     return {
       steps,
       totalSteps: steps.length,
-      usesExterior: true,
-      gateTrace: dedupeGates(dir === "out" ? [t1, 1, 4, east] : [east, 4, 1, t1]),
+      usesExterior: false,
+      gateTrace: dedupeGates(dir === "out" ? [t1, 3, 4, east] : [east, 4, 3, t1]),
       specialPath: path,
       specialMeters: pointsMeters(path),
+      supportPoints: pickSupportPoints(path),
     }
   }
 }
