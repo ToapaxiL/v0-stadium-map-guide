@@ -1011,22 +1011,14 @@ function makeSouthCorridorRoute(t1: number, sub: "alta" | "baja", dir: "out" | "
       if (t1 !== 3)
         steps.push({ type: "internal", instruction: es ? "Camina hasta Tribuna Sur Occidental (Puerta 3)" : "Walk to South West Stand (Gate 3)", icon: "walk" })
       steps.push({ type: "internal", instruction: es
-        ? "Toma el paso habilitado: avanza al borde este y sube por los puntos de apoyo hasta General Sur Baja"
-        : "Take the enabled passage: go to the east edge and up the support points to South Low General", icon: "enter" })
-      if (sub === "alta")
-        steps.push({ type: "internal", instruction: es
-          ? "Desde General Sur Baja baja a General Sur Alta"
-          : "From South Low General go down to South High General", icon: "walk" })
+        ? "Toma el paso habilitado para conectar con la zona de General Sur"
+        : "Take the enabled passage to connect with the South General area", icon: "enter" })
       steps.push({ type: "arrive", instruction: es ? n4.es : n4.en, detail: `${gw} 4`, icon: "flag" })
     } else {
       steps.push({ type: "start", instruction: es ? n4.es : n4.en, detail: `${gw} 4`, icon: "pin" })
-      if (sub === "alta")
-        steps.push({ type: "internal", instruction: es
-          ? "Sube a General Sur Baja para tomar el paso habilitado"
-          : "Go up to South Low General to take the enabled passage", icon: "walk" })
       steps.push({ type: "internal", instruction: es
-        ? "Baja por el borde este guiándote por los puntos de apoyo hasta Tribuna Sur Occidental (Puerta 3)"
-        : "Go down the east edge following the support points to South West Stand (Gate 3)", icon: "enter" })
+        ? "Toma el paso habilitado para conectar con Tribuna Sur Occidental (Puerta 3)"
+        : "Take the enabled passage to connect with South West Stand (Gate 3)", icon: "enter" })
       if (t1 !== 3)
         steps.push({ type: "internal", instruction: es ? `Camina hasta la Puerta ${n1.gate}` : `Walk to Gate ${n1.gate}`, icon: "walk" })
       steps.push({ type: "arrive", instruction: es ? n1.es : n1.en, detail: `${gw} ${n1.gate}`, icon: "flag" })
