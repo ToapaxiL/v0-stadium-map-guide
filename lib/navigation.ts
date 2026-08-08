@@ -1013,9 +1013,17 @@ function makeSouthCorridorRoute(t1: number, sub: "alta" | "baja", dir: "out" | "
       steps.push({ type: "internal", instruction: es
         ? "Toma el paso habilitado para conectar con la zona de General Sur"
         : "Take the enabled passage to connect with the South General area", icon: "enter" })
+      if (sub === "alta")
+        steps.push({ type: "internal", instruction: es
+          ? "Ingresa por General Sur Baja y dirígete a General Sur Alta"
+          : "Enter through South Low General and head to South High General", icon: "walk" })
       steps.push({ type: "arrive", instruction: es ? n4.es : n4.en, detail: `${gw} 4`, icon: "flag" })
     } else {
       steps.push({ type: "start", instruction: es ? n4.es : n4.en, detail: `${gw} 4`, icon: "pin" })
+      if (sub === "alta")
+        steps.push({ type: "internal", instruction: es
+          ? "Desde General Sur Alta dirígete a General Sur Baja"
+          : "From South High General head to South Low General", icon: "walk" })
       steps.push({ type: "internal", instruction: es
         ? "Toma el paso habilitado para conectar con Tribuna Sur Occidental (Puerta 3)"
         : "Take the enabled passage to connect with South West Stand (Gate 3)", icon: "enter" })
