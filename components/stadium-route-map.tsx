@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo, useEffect, useRef } from "react"
-import { SUPPORT_WAYPOINTS, type RouteResult } from "@/lib/navigation"
+import type { RouteResult } from "@/lib/navigation"
 import { useLanguage } from "@/lib/language-context"
 
 const VW = 850.394
@@ -249,7 +249,7 @@ export function StadiumRouteMap({ result }: Props) {
     return () => cancelAnimationFrame(raf1)
   }, [data])
 
-  const { posA, posB, pathD, len, support } = data
+  const { posA, posB, pathD, len } = data
 
   return (
     <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
@@ -289,21 +289,6 @@ export function StadiumRouteMap({ result }: Props) {
               </feMerge>
             </filter>
           </defs>
-
-          {/* Puntos de apoyo REALES del recinto (waypoints del SVG, invisibles en
-              la imagen): se dibujan siempre para que el usuario los ubique. */}
-          {SUPPORT_WAYPOINTS.map((p, i) => (
-            <circle
-              key={`wp-${i}`}
-              cx={p.x}
-              cy={p.y}
-              r={3}
-              fill="#dc2626"
-              stroke="white"
-              strokeWidth={1}
-              opacity={0.9}
-            />
-          ))}
 
           {/* Casing blanco para contraste */}
           {pathD && (
@@ -347,19 +332,6 @@ export function StadiumRouteMap({ result }: Props) {
               strokeDashoffset={`${len}`}
             />
           )}
-
-          {/* Puntos de apoyo del paso interno habilitado (guía del recorrido) */}
-          {support.map((p, i) => (
-            <circle
-              key={`sp-${i}`}
-              cx={p.x}
-              cy={p.y}
-              r={4.5}
-              fill="#0f172a"
-              stroke="white"
-              strokeWidth={1.5}
-            />
-          ))}
 
           {/* Pulso en punto A */}
           <circle cx={posA.x} cy={posA.y} r={15} fill="#22c55e" opacity={0.15}>
