@@ -200,7 +200,7 @@ export function StadiumRouteMap({ result }: Props) {
       const posB = { ...sp[sp.length - 1], gate: PERIMETER[iB].gate }
       const pathD = toD(sp)
       const len   = pathLength(sp)
-      return { iA, iB, posA, posB, pathD, len }
+      return { iA, iB, posA, posB, pathD, len, support: result.supportPoints ?? [] }
     }
 
     const posA = PERIMETER[iA]
@@ -225,7 +225,7 @@ export function StadiumRouteMap({ result }: Props) {
     const pathD = toD(pts)
     const len   = pathLength(pts)
 
-    return { iA, iB, posA, posB, pathD, len }
+    return { iA, iB, posA, posB, pathD, len, support: [] as { x: number; y: number }[] }
   }, [result])
 
   // Animación draw-on
@@ -269,7 +269,7 @@ export function StadiumRouteMap({ result }: Props) {
 
       <div className="relative w-full">
         <img
-          src="/images/mapa-rutas.svg"
+          src="/images/mapa-rutas-nuevo.png"
           alt="Mapa del estadio"
           className="w-full h-auto block"
           draggable={false}
