@@ -306,12 +306,12 @@ const PT = {
 
   // ── PASO INTERNO habilitado (corredor lado cancha) con PUNTOS DE APOYO ──
   // Conecta Tribuna Sur Occidental (P3) con General Sur SIN salir del estadio.
-  // Desde P3 se avanza al arranque del paso y se sube por los puntos de apoyo:
-  // pasa por el nivel de General Sur Alta (parada intermedia) hasta General Sur
-  // Baja (la parte más alta). Coords en el mismo viewBox del mapa (850×566).
-  passBase:      { x: 640.0, y: 348.188 }, // arranque del paso, junto a P3 (esquina inferior)
-  passAlta:      { x: 640.0, y: 289.996 }, // punto de apoyo al nivel de General Sur Alta
-  passBaja:      { x: 640.0, y: 229.997 }, // punto de apoyo al nivel de General Sur Baja
+  // Desde P3 se avanza en horizontal por el pie de los bloques hasta el borde
+  // ESTE (junto a la cámara) y se sube por ese borde hasta el NODO al nivel de
+  // General Sur Baja. El enganche a P3 está en General Sur BAJA: a General Sur
+  // Alta se llega "dando la vuelta" (pasando por Baja y bajando a Alta).
+  passCorner:    { x: 703.0, y: 348.188 }, // giro al pie del paso, en el borde este de los bloques
+  passNode:      { x: 703.0, y: 229.997 }, // nodo del paso al nivel de General Sur Baja
 
   // ── Lado Sur Oriental (continuación interna desde General Sur Baja) ─�����
   p5Seat:        { x: 599.981, y: 164.310 }, // Tribuna Sur Oriental (P5)
@@ -911,13 +911,14 @@ function westToP3(gate: number): Pt[] {
   if (gate === 2) return [PT.p2Seat, PT.p3]
   return [PT.p3] // ya en Tribuna Sur Occidental
 }
-// Cabecera del PASO INTERNO desde P3 hasta General Sur, guiándose por los
-// PUNTOS DE APOYO. General Sur Baja es la parte más alta (arriba): el paso sube
-// desde P3, pasa por el nivel de General Sur Alta (parada intermedia) y llega a
-// la Baja. Ya NO se sale del estadio.
+// Cabecera del PASO INTERNO desde P3 hasta General Sur. Desde P3 se avanza en
+// horizontal hasta el borde ESTE (passCorner) y se sube por ese borde hasta el
+// NODO al nivel de General Sur Baja (passNode). El enganche a P3 está en Baja:
+// a General Sur BAJA se entra directo; a General Sur ALTA se llega "dando la
+// vuelta" (pasando por Baja y bajando a Alta). Ya NO se sale del estadio.
 function passHead(sub: "alta" | "baja"): Pt[] {
-  if (sub === "alta") return [PT.passBase, PT.passAlta, PT.p4AltaSeat]
-  return [PT.passBase, PT.passAlta, PT.passBaja, PT.p4BajaSeat]
+  if (sub === "alta") return [PT.passCorner, PT.passNode, PT.p4BajaSeat, PT.p4AltaSeat]
+  return [PT.passCorner, PT.passNode, PT.p4BajaSeat]
 }
 
 // Cola interna de la General Sur hacia el lado oriental, recorriendo el borde
@@ -940,8 +941,9 @@ function passEastHead(east: number): Pt[] {
   return pts
 }
 
-// Puntos de apoyo del paso (para dibujarlos como marcadores en el mapa).
-const PASS_POINTS: Pt[] = [PT.passBase, PT.passAlta, PT.passBaja]
+// Puntos de apoyo del paso (para dibujarlos como marcadores en el mapa): el
+// giro al pie del borde este y el nodo al nivel de General Sur Baja.
+const PASS_POINTS: Pt[] = [PT.passCorner, PT.passNode]
 function pickSupportPoints(path: Pt[]): Pt[] {
   return path.filter((p) => PASS_POINTS.some((q) => q.x === p.x && q.y === p.y))
 }
@@ -961,21 +963,22 @@ function makeSouthCorridorRoute(t1: number, sub: "alta" | "baja", dir: "out" | "
       if (t1 !== 3)
         steps.push({ type: "internal", instruction: es ? "Camina hasta Tribuna Sur Occidental (Puerta 3)" : "Walk to South West Stand (Gate 3)", icon: "walk" })
       steps.push({ type: "internal", instruction: es
-        ? "Toma el paso habilitado y guíate por los puntos de apoyo"
-        : "Take the enabled passage and follow the support points", icon: "enter" })
+        ? "Toma el paso habilitado: avanza al borde este y sube por los puntos de apoyo hasta General Sur Baja"
+        : "Take the enabled passage: go to the east edge and up the support points to South Low General", icon: "enter" })
       if (sub === "alta")
-        steps.push({ type: "internal", instruction: es ? "Sube hasta General Sur Alta" : "Go up to South High General", icon: "walk" })
-      else
         steps.push({ type: "internal", instruction: es
-          ? "Sigue por los puntos de apoyo, pasando General Sur Alta, hasta General Sur Baja (la parte más alta)"
-          : "Continue along the support points, past South High General, up to South Low General (the highest part)", icon: "walk" })
+          ? "Desde General Sur Baja baja a General Sur Alta"
+          : "From South Low General go down to South High General", icon: "walk" })
       steps.push({ type: "arrive", instruction: es ? n4.es : n4.en, detail: `${gw} 4`, icon: "flag" })
     } else {
       steps.push({ type: "start", instruction: es ? n4.es : n4.en, detail: `${gw} 4`, icon: "pin" })
+      if (sub === "alta")
+        steps.push({ type: "internal", instruction: es
+          ? "Sube a General Sur Baja para tomar el paso habilitado"
+          : "Go up to South Low General to take the enabled passage", icon: "walk" })
       steps.push({ type: "internal", instruction: es
-        ? "Toma el paso habilitado y baja guiándote por los puntos de apoyo"
-        : "Take the enabled passage and go down following the support points", icon: "enter" })
-      steps.push({ type: "internal", instruction: es ? "Llega a Tribuna Sur Occidental (Puerta 3)" : "Reach South West Stand (Gate 3)", icon: "walk" })
+        ? "Baja por el borde este guiándote por los puntos de apoyo hasta Tribuna Sur Occidental (Puerta 3)"
+        : "Go down the east edge following the support points to South West Stand (Gate 3)", icon: "enter" })
       if (t1 !== 3)
         steps.push({ type: "internal", instruction: es ? `Camina hasta la Puerta ${n1.gate}` : `Walk to Gate ${n1.gate}`, icon: "walk" })
       steps.push({ type: "arrive", instruction: es ? n1.es : n1.en, detail: `${gw} ${n1.gate}`, icon: "flag" })
