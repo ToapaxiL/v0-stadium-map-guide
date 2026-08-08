@@ -307,11 +307,12 @@ const PT = {
   // ── PASO INTERNO habilitado (corredor lado cancha) con PUNTOS DE APOYO ──
   // Conecta Tribuna Sur Occidental (P3) con General Sur SIN salir del estadio.
   // Desde P3 se avanza en horizontal por el pie de los bloques hasta el borde
-  // ESTE (junto a la cámara) y se sube por ese borde hasta el NODO al nivel de
-  // General Sur Baja. El enganche a P3 está en General Sur BAJA: a General Sur
-  // Alta se llega "dando la vuelta" (pasando por Baja y bajando a Alta).
-  passCorner:    { x: 703.0, y: 348.188 }, // giro al pie del paso, en el borde este de los bloques
-  passNode:      { x: 703.0, y: 229.997 }, // nodo del paso al nivel de General Sur Baja
+  // ESTE y se sube por ese borde hasta el NODO del paso, que coincide EXACTO con
+  // el punto marcado en el mapa (marcador PND junto a la cámara). El enganche a
+  // P3 está en General Sur BAJA: a General Sur Alta se llega "dando la vuelta"
+  // (pasando por Baja y bajando a Alta).
+  passCorner:    { x: 703.816, y: 348.188 }, // giro al pie del paso, en el borde este de los bloques
+  passNode:      { x: 703.816, y: 264.576 }, // NODO del paso = punto marcado en el SVG (PND, borde este)
 
   // ── Lado Sur Oriental (continuación interna desde General Sur Baja) ─�����
   p5Seat:        { x: 599.981, y: 164.310 }, // Tribuna Sur Oriental (P5)
