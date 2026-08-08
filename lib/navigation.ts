@@ -358,6 +358,41 @@ const PT = {
   p3Seat:        { x: 599.981, y: 348.188 }, // Tribuna Sur Occidental (P3)
 }
 
+/**
+ * Puntos de apoyo REALES del recinto, tomados EXACTO de los waypoints embebidos
+ * (ellipse opacity=0) del SVG del mapa. En el SVG son invisibles; el mapa los
+ * dibuja como marcadores visibles para que el usuario los ubique. Coords en el
+ * viewBox del mapa (850.394 × 566.929).
+ */
+export const SUPPORT_WAYPOINTS: { x: number; y: number }[] = [
+  { x: 212.252, y: 397.188 },
+  { x: 212.253, y: 467.546 },
+  { x: 226.996, y: 348.188 },
+  { x: 226.996, y: 371.054 },
+  { x: 226.996, y: 397.189 },
+  { x: 275.995, y: 294.187 },
+  { x: 275.995, y: 348.188 },
+  { x: 275.995, y: 371.052 },
+  { x: 275.996, y: 224.819 },
+  { x: 345.981, y: 348.188 },
+  { x: 345.983, y: 164.188 },
+  { x: 409.189, y: 153.438 },
+  { x: 409.190, y: 363.356 },
+  { x: 473.751, y: 394.346 },
+  { x: 531.822, y: 418.299 },
+  { x: 531.822, y: 486.547 },
+  { x: 537.972, y: 153.438 },
+  { x: 537.973, y: 363.356 },
+  { x: 599.981, y: 164.310 },
+  { x: 599.981, y: 348.188 },
+  { x: 660.866, y: 229.997 },
+  { x: 660.866, y: 290.103 },
+  { x: 660.866, y: 348.188 },
+  { x: 670.291, y: 289.996 },
+  { x: 670.292, y: 229.997 },
+  { x: 670.292, y: 348.188 },
+]
+
 // Elimina puertas repetidas consecutivas del rastro (p. ej. [1,1,4] → [1,4]).
 function dedupeGates(gates: number[]): number[] {
   return gates.filter((g, i) => i === 0 || g !== gates[i - 1])

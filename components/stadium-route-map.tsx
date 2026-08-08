@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo, useEffect, useRef } from "react"
-import type { RouteResult } from "@/lib/navigation"
+import { SUPPORT_WAYPOINTS, type RouteResult } from "@/lib/navigation"
 import { useLanguage } from "@/lib/language-context"
 
 const VW = 850.394
@@ -289,6 +289,21 @@ export function StadiumRouteMap({ result }: Props) {
               </feMerge>
             </filter>
           </defs>
+
+          {/* Puntos de apoyo REALES del recinto (waypoints del SVG, invisibles en
+              la imagen): se dibujan siempre para que el usuario los ubique. */}
+          {SUPPORT_WAYPOINTS.map((p, i) => (
+            <circle
+              key={`wp-${i}`}
+              cx={p.x}
+              cy={p.y}
+              r={3}
+              fill="#dc2626"
+              stroke="white"
+              strokeWidth={1}
+              opacity={0.9}
+            />
+          ))}
 
           {/* Casing blanco para contraste */}
           {pathD && (
