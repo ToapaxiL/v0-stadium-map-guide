@@ -333,6 +333,19 @@ export function StadiumRouteMap({ result }: Props) {
             />
           )}
 
+          {/* Puntos de apoyo del paso interno habilitado (guía del recorrido) */}
+          {support.map((p, i) => (
+            <circle
+              key={`sp-${i}`}
+              cx={p.x}
+              cy={p.y}
+              r={4.5}
+              fill="#0f172a"
+              stroke="white"
+              strokeWidth={1.5}
+            />
+          ))}
+
           {/* Pulso en punto A */}
           <circle cx={posA.x} cy={posA.y} r={15} fill="#22c55e" opacity={0.15}>
             <animate attributeName="r" values="10;18;10" dur="2s" repeatCount="indefinite" />
