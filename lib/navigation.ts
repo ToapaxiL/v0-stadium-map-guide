@@ -304,15 +304,14 @@ const PT = {
   p4AltaSeat:    { x: 670.291, y: 289.996 }, // General Sur Alta (P4)
   p4BajaSeat:    { x: 670.292, y: 229.997 }, // General Sur Baja (P4) — parte más alta (arriba)
 
-  // ── PASO INTERNO habilitado (corredor lado cancha) con PUNTOS DE APOYO ──
-  // Conecta Tribuna Sur Occidental (P3) con General Sur SIN salir del estadio.
-  // Desde P3 se avanza en horizontal por el pie de los bloques hasta el borde
-  // ESTE y se sube por ese borde hasta el NODO del paso, que coincide EXACTO con
-  // el punto marcado en el mapa (marcador PND junto a la cámara). El enganche a
-  // P3 está en General Sur BAJA: a General Sur Alta se llega "dando la vuelta"
-  // (pasando por Baja y bajando a Alta).
-  passCorner:    { x: 703.816, y: 348.188 }, // giro al pie del paso, en el borde este de los bloques
-  passNode:      { x: 703.816, y: 264.576 }, // NODO del paso = punto marcado en el SVG (PND, borde este)
+  // ── PASO INTERNO habilitado con PUNTOS DE APOYO REALES del SVG ──
+  // Conecta Tribuna Sur Occidental (P3) con General Sur SIN salir del estadio,
+  // recorriendo los waypoints embebidos del mapa (columna de anclas x≈670 dentro
+  // de los bloques de General Sur). Desde P3 se avanza en horizontal hasta el
+  // ancla del bloque inferior y se sube por la columna: bloque inferior →
+  // General Sur Alta → General Sur Baja. Coords tomadas EXACTO de los waypoints
+  // (ellipse opacity=0) del SVG.
+  passBottom:    { x: 670.292, y: 348.188 }, // ancla del bloque General Sur inferior (a la altura de P3)
 
   // ── Lado Sur Oriental (continuación interna desde General Sur Baja) ─�����
   p5Seat:        { x: 599.981, y: 164.310 }, // Tribuna Sur Oriental (P5)
@@ -912,14 +911,14 @@ function westToP3(gate: number): Pt[] {
   if (gate === 2) return [PT.p2Seat, PT.p3]
   return [PT.p3] // ya en Tribuna Sur Occidental
 }
-// Cabecera del PASO INTERNO desde P3 hasta General Sur. Desde P3 se avanza en
-// horizontal hasta el borde ESTE (passCorner) y se sube por ese borde hasta el
-// NODO al nivel de General Sur Baja (passNode). El enganche a P3 está en Baja:
-// a General Sur BAJA se entra directo; a General Sur ALTA se llega "dando la
-// vuelta" (pasando por Baja y bajando a Alta). Ya NO se sale del estadio.
+// Cabecera del PASO INTERNO desde P3 hasta General Sur, recorriendo los
+// waypoints REALES embebidos del SVG. Desde P3 se avanza en horizontal hasta el
+// ancla del bloque inferior (passBottom) y se sube por la columna de anclas:
+// bloque inferior → General Sur Alta → General Sur Baja. Ya NO se sale del
+// estadio.
 function passHead(sub: "alta" | "baja"): Pt[] {
-  if (sub === "alta") return [PT.passCorner, PT.passNode, PT.p4BajaSeat, PT.p4AltaSeat]
-  return [PT.passCorner, PT.passNode, PT.p4BajaSeat]
+  if (sub === "alta") return [PT.passBottom, PT.p4AltaSeat]
+  return [PT.passBottom, PT.p4AltaSeat, PT.p4BajaSeat]
 }
 
 // Cola interna de la General Sur hacia el lado oriental, recorriendo el borde
@@ -942,11 +941,15 @@ function passEastHead(east: number): Pt[] {
   return pts
 }
 
-// Puntos de apoyo del paso (para dibujarlos como marcadores en el mapa): el
-// giro al pie del borde este y el nodo al nivel de General Sur Baja.
-const PASS_POINTS: Pt[] = [PT.passCorner, PT.passNode]
+// Puntos de apoyo del paso (waypoints reales del SVG) para dibujarlos como
+// marcadores: ancla del bloque inferior y anclas de General Sur Alta y Baja.
+const PASS_POINTS: Pt[] = [PT.passBottom, PT.p4AltaSeat, PT.p4BajaSeat]
 function pickSupportPoints(path: Pt[]): Pt[] {
-  return path.filter((p) => PASS_POINTS.some((q) => q.x === p.x && q.y === p.y))
+  // Excluye los extremos (van bajo los marcadores A/B) y conserva solo los
+  // waypoints reales intermedios del paso.
+  return path
+    .slice(1, -1)
+    .filter((p) => PASS_POINTS.some((q) => q.x === p.x && q.y === p.y))
 }
 
 function makeSouthCorridorRoute(t1: number, sub: "alta" | "baja", dir: "out" | "in"): SpecialRouteBuilder {
